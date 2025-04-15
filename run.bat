@@ -1,0 +1,3 @@
+@echo off
+echo Starting Mask R-CNN Web Interface...
+python app.py 

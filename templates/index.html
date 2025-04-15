@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mask R-CNN Instance Segmentation</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            padding-top: 2rem;
+            background-color: #f8f9fa;
+        }
+        .container {
+            max-width: 800px;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+        .card {
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            margin-bottom: 2rem;
+        }
+        .upload-box {
+            border: 2px dashed #dee2e6;
+            padding: 2rem;
+            text-align: center;
+            border-radius: 5px;
+            background-color: #fff;
+            cursor: pointer;
+        }
+        .upload-box:hover {
+            border-color: #0d6efd;
+        }
+        #file-name {
+            margin-top: 1rem;
+            font-weight: bold;
+        }
+        .instructions {
+            font-size: 0.9rem;
+            color: #6c757d;
+        }
+        .flash-messages {
+            margin-bottom: 1rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Mask R-CNN Instance Segmentation</h1>
+            <p class="lead">Upload an image or video to detect and segment objects</p>
+        </div>
+
+        {% with messages = get_flashed_messages() %}
+            {% if messages %}
+                <div class="flash-messages">
+                    {% for message in messages %}
+                        <div class="alert alert-warning">{{ message }}</div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        <div class="card">
+            <div class="card-body">
+                <form action="{{ url_for('upload_file') }}" method="post" enctype="multipart/form-data">
+                    <div class="mb-4">
+                        <label for="file" class="form-label">Select an image or video file:</label>
+                        <div class="upload-box" id="upload-box" onclick="document.getElementById('file').click();">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" fill="currentColor" class="bi bi-cloud-arrow-up mb-3" viewBox="0 0 16 16">
+                                <path fill-rule="evenodd" d="M7.646 5.146a.5.5 0 0 1 .708 0l2 2a.5.5 0 0 1-.708.708L8.5 6.707V10.5a.5.5 0 0 1-1 0V6.707L6.354 7.854a.5.5 0 1 1-.708-.708l2-2z"/>
+                                <path d="M4.406 3.342A5.53 5.53 0 0 1 8 2c2.69 0 4.923 2 5.166 4.579C14.758 6.804 16 8.137 16 9.773 16 11.569 14.502 13 12.687 13H3.781C1.708 13 0 11.366 0 9.318c0-1.763 1.266-3.223 2.942-3.593.143-.863.698-1.723 1.464-2.383zm.653.757c-.757.653-1.153 1.44-1.153 2.056v.448l-.445.049C2.064 6.805 1 7.952 1 9.318 1 10.785 2.23 12 3.781 12h8.906C13.98 12 15 10.988 15 9.773c0-1.216-1.02-2.228-2.313-2.228h-.5v-.5C12.188 4.825 10.328 3 8 3a4.53 4.53 0 0 0-2.941 1.1z"/>
+                            </svg>
+                            <h5>Drag & drop your file here or click to browse</h5>
+                            <p class="instructions">Supported formats: jpg, png, jpeg, mp4, avi, mov</p>
+                            <div id="file-name"></div>
+                        </div>
+                        <input type="file" class="form-control d-none" id="file" name="file" accept=".jpg,.jpeg,.png,.mp4,.avi,.mov">
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label for="threshold" class="form-label">Detection Threshold (0.1-1.0):</label>
+                        <input type="range" class="form-range" min="0.1" max="1.0" step="0.05" value="0.7" id="threshold" name="threshold">
+                        <div class="d-flex justify-content-between">
+                            <span>0.1 (Low Confidence)</span>
+                            <span id="threshold-value">0.7</span>
+                            <span>1.0 (High Confidence)</span>
+                        </div>
+                    </div>
+                    
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary" id="submit-btn" disabled>Process</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <div class="card">
+            <div class="card-header">
+                About Mask R-CNN
+            </div>
+            <div class="card-body">
+                <p>Mask R-CNN is a deep neural network that performs instance segmentation by recognizing objects in an image and generating a high-quality segmentation mask for each instance.</p>
+                <p>This demo uses a pre-trained Mask R-CNN model implemented in PyTorch, trained on the COCO dataset which can detect 80 different object categories.</p>
+                <p>For videos, processing may take some time depending on the video length and complexity.</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Display selected file name
+        document.getElementById('file').addEventListener('change', function() {
+            const fileName = this.files[0] ? this.files[0].name : '';
+            document.getElementById('file-name').textContent = fileName;
+            document.getElementById('submit-btn').disabled = !fileName;
+        });
+        
+        // Update threshold value display
+        document.getElementById('threshold').addEventListener('input', function() {
+            document.getElementById('threshold-value').textContent = this.value;
+        });
+        
+        // Drag and drop functionality
+        const uploadBox = document.getElementById('upload-box');
+        
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            uploadBox.addEventListener(eventName, preventDefaults, false);
+        });
+        
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+        
+        ['dragenter', 'dragover'].forEach(eventName => {
+            uploadBox.addEventListener(eventName, highlight, false);
+        });
+        
+        ['dragleave', 'drop'].forEach(eventName => {
+            uploadBox.addEventListener(eventName, unhighlight, false);
+        });
+        
+        function highlight() {
+            uploadBox.classList.add('border-primary');
+        }
+        
+        function unhighlight() {
+            uploadBox.classList.remove('border-primary');
+        }
+        
+        uploadBox.addEventListener('drop', handleDrop, false);
+        
+        function handleDrop(e) {
+            const dt = e.dataTransfer;
+            const files = dt.files;
+            document.getElementById('file').files = files;
+            document.getElementById('file-name').textContent = files[0].name;
+            document.getElementById('submit-btn').disabled = false;
+        }
+    </script>
+</body>
+</html> 

@@ -1,0 +1,43 @@
+# Mask R-CNN model weights file
+mask_rcnn_coco.h5
+*.h5
+*.weights
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Distribution / packaging
+dist/
+build/
+*.egg-info/
+
+# Environments
+.env
+.venv
+env/
+venv/
+ENV/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# VS Code
+.vscode/
+
+# PyCharm
+.idea/
+
+# Uploads and results directories (generated content)
+uploads/*
+results/*
+!uploads/.gitkeep
+!results/.gitkeep
+
+# macOS specific files
+.DS_Store
+
+# Windows specific files
+Thumbs.db
+ehthumbs.db 
