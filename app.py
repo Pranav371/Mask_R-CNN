@@ -42,7 +42,7 @@ def allowed_file(filename):
     return '.' in filename and \
            filename.rsplit('.', 1)[1].lower() in app.config['ALLOWED_EXTENSIONS']
 
-def process_image(image_path, threshold=0.7):
+def process_image(image_path, threshold=0.7, selected_classes=None):
     """Process an image with Mask R-CNN."""
     # Load and preprocess image
     image = cv2.imread(image_path)
@@ -62,8 +62,13 @@ def process_image(image_path, threshold=0.7):
     labels = predictions[0]['labels'].cpu().numpy()
     masks = predictions[0]['masks'].cpu().numpy()
 
-    # Filter predictions based on confidence
-    keep = scores >= threshold
+    # Filter predictions based on confidence and selected classes
+    if selected_classes:
+        selected_classes = [int(cls) for cls in selected_classes]
+        keep = (scores >= threshold) & np.isin(labels, selected_classes)
+    else:
+        keep = scores >= threshold
+    
     boxes = boxes[keep]
     scores = scores[keep]
     labels = labels[keep]
@@ -111,7 +116,7 @@ def process_image(image_path, threshold=0.7):
     
     return output_image, detected_objects
 
-def process_video(video_path, threshold=0.7):
+def process_video(video_path, threshold=0.7, selected_classes=None):
     """Process a video with Mask R-CNN."""
     # Open the video file
     video = cv2.VideoCapture(video_path)
@@ -137,6 +142,10 @@ def process_video(video_path, threshold=0.7):
     frame_count = 0
     max_frames = 900  # Limit processing to about 30 seconds at 30 fps
     
+    # Convert selected_classes to integers if provided
+    if selected_classes:
+        selected_classes = [int(cls) for cls in selected_classes]
+    
     while True:
         ret, frame = video.read()
         if not ret or frame_count >= max_frames:
@@ -159,8 +168,12 @@ def process_video(video_path, threshold=0.7):
         labels = predictions[0]['labels'].cpu().numpy()
         masks = predictions[0]['masks'].cpu().numpy()
         
-        # Filter predictions based on confidence
-        keep = scores >= threshold
+        # Filter predictions based on confidence and selected classes
+        if selected_classes:
+            keep = (scores >= threshold) & np.isin(labels, selected_classes)
+        else:
+            keep = scores >= threshold
+        
         boxes = boxes[keep]
         scores = scores[keep]
         labels = labels[keep]
@@ -219,7 +232,18 @@ def upload_file():
     
     file = request.files['file']
     threshold = float(request.form.get('threshold', 0.7))
+    selected_classes = request.form.getlist('selected_classes[]')
     
+    # If no classes selected, process all classes
+    if not selected_classes:
+        selected_classes = None
+        selected_class_names = None
+        filtered_classes = False
+    else:
+        # Get class names for the selected classes
+        selected_class_names = [COCO_CLASSES[int(cls)] for cls in selected_classes if cls.isdigit() and int(cls) < len(COCO_CLASSES)]
+        filtered_classes = True
+        
     if file.filename == '':
         flash('No selected file')
         return redirect(request.url)
@@ -234,7 +258,7 @@ def upload_file():
         # Process based on file type
         if file_extension in {'png', 'jpg', 'jpeg'}:
             # Process image
-            output_image, detected_objects = process_image(file_path, threshold)
+            output_image, detected_objects = process_image(file_path, threshold, selected_classes)
             
             # Save the processed image
             output_filename = f"processed_{filename}"
@@ -245,18 +269,24 @@ def upload_file():
                                   original=filename,
                                   processed=output_filename,
                                   is_video=False,
-                                  objects=detected_objects)
+                                  objects=detected_objects,
+                                  threshold=threshold,
+                                  selected_class_names=selected_class_names,
+                                  filtered_classes=filtered_classes)
         
         elif file_extension in {'mp4', 'avi', 'mov'}:
             # Process video
-            output_filename = process_video(file_path, threshold)
+            output_filename = process_video(file_path, threshold, selected_classes)
             
             if output_filename:
                 return render_template('result.html',
                                       original=filename,
                                       processed=output_filename,
                                       is_video=True,
-                                      objects=None)
+                                      objects=None,
+                                      threshold=threshold,
+                                      selected_class_names=selected_class_names,
+                                      filtered_classes=filtered_classes)
             else:
                 flash('Error processing video')
                 return redirect(url_for('index'))

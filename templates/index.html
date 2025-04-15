@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mask R-CNN Instance Segmentation</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
     <style>
         body {
             padding-top: 2rem;
@@ -43,6 +44,23 @@
         }
         .flash-messages {
             margin-bottom: 1rem;
+        }
+        .select2-container {
+            width: 100% !important;
+        }
+        .class-filters {
+            margin-bottom: 1.5rem;
+        }
+        .select2-container--default .select2-selection--multiple {
+            border-radius: 0.375rem;
+            padding: 0.375rem;
+            border-color: #dee2e6;
+        }
+        .class-selection-toggle {
+            cursor: pointer;
+            color: #0d6efd;
+            text-decoration: underline;
+            font-size: 0.9rem;
         }
     </style>
 </head>
@@ -90,6 +108,102 @@
                         </div>
                     </div>
                     
+                    <div class="mb-4 class-filters">
+                        <label for="selected_classes" class="form-label d-flex justify-content-between">
+                            <span>Filter Classes to Detect:</span>
+                            <span>
+                                <a href="#" class="class-selection-toggle me-2" id="select-all">Select All</a> | 
+                                <a href="#" class="class-selection-toggle me-2" id="deselect-all">Deselect All</a> |
+                                <a href="#" class="class-selection-toggle" id="select-common">Common Objects</a>
+                            </span>
+                        </label>
+                        <select class="form-select" id="selected_classes" name="selected_classes[]" multiple="multiple">
+                            <option value="1" selected>person</option>
+                            <option value="2" selected>bicycle</option>
+                            <option value="3" selected>car</option>
+                            <option value="4" selected>motorcycle</option>
+                            <option value="5">airplane</option>
+                            <option value="6">bus</option>
+                            <option value="7">train</option>
+                            <option value="8">truck</option>
+                            <option value="9">boat</option>
+                            <option value="10">traffic light</option>
+                            <option value="11">fire hydrant</option>
+                            <option value="13">stop sign</option>
+                            <option value="14">parking meter</option>
+                            <option value="15">bench</option>
+                            <option value="16" selected>bird</option>
+                            <option value="17" selected>cat</option>
+                            <option value="18" selected>dog</option>
+                            <option value="19">horse</option>
+                            <option value="20">sheep</option>
+                            <option value="21">cow</option>
+                            <option value="22">elephant</option>
+                            <option value="23">bear</option>
+                            <option value="24">zebra</option>
+                            <option value="25">giraffe</option>
+                            <option value="27" selected>backpack</option>
+                            <option value="28">umbrella</option>
+                            <option value="31" selected>handbag</option>
+                            <option value="32">tie</option>
+                            <option value="33">suitcase</option>
+                            <option value="34">frisbee</option>
+                            <option value="35">skis</option>
+                            <option value="36">snowboard</option>
+                            <option value="37">sports ball</option>
+                            <option value="38">kite</option>
+                            <option value="39">baseball bat</option>
+                            <option value="40">baseball glove</option>
+                            <option value="41">skateboard</option>
+                            <option value="42">surfboard</option>
+                            <option value="43">tennis racket</option>
+                            <option value="44" selected>bottle</option>
+                            <option value="46" selected>wine glass</option>
+                            <option value="47" selected>cup</option>
+                            <option value="48">fork</option>
+                            <option value="49">knife</option>
+                            <option value="50">spoon</option>
+                            <option value="51">bowl</option>
+                            <option value="52">banana</option>
+                            <option value="53">apple</option>
+                            <option value="54">sandwich</option>
+                            <option value="55">orange</option>
+                            <option value="56">broccoli</option>
+                            <option value="57">carrot</option>
+                            <option value="58">hot dog</option>
+                            <option value="59">pizza</option>
+                            <option value="60">donut</option>
+                            <option value="61">cake</option>
+                            <option value="62" selected>chair</option>
+                            <option value="63" selected>couch</option>
+                            <option value="64" selected>potted plant</option>
+                            <option value="65">bed</option>
+                            <option value="67" selected>dining table</option>
+                            <option value="70">toilet</option>
+                            <option value="72" selected>tv</option>
+                            <option value="73" selected>laptop</option>
+                            <option value="74">mouse</option>
+                            <option value="75">remote</option>
+                            <option value="76" selected>keyboard</option>
+                            <option value="77" selected>cell phone</option>
+                            <option value="78">microwave</option>
+                            <option value="79">oven</option>
+                            <option value="80">toaster</option>
+                            <option value="81">sink</option>
+                            <option value="82">refrigerator</option>
+                            <option value="84">book</option>
+                            <option value="85">clock</option>
+                            <option value="86">vase</option>
+                            <option value="87">scissors</option>
+                            <option value="88">teddy bear</option>
+                            <option value="89">hair drier</option>
+                            <option value="90">toothbrush</option>
+                        </select>
+                        <div class="form-text">
+                            Select which object classes you want to detect. By default, common objects are selected.
+                        </div>
+                    </div>
+                    
                     <div class="d-grid">
                         <button type="submit" class="btn btn-primary" id="submit-btn" disabled>Process</button>
                     </div>
@@ -109,7 +223,42 @@
         </div>
     </div>
 
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
     <script>
+        // Initialize Select2 for better dropdown experience
+        $(document).ready(function() {
+            $('#selected_classes').select2({
+                placeholder: "Select object classes to detect",
+                allowClear: true
+            });
+            
+            // Handle select/deselect all buttons
+            $('#select-all').click(function(e) {
+                e.preventDefault();
+                $('#selected_classes option').prop('selected', true);
+                $('#selected_classes').trigger('change');
+            });
+            
+            $('#deselect-all').click(function(e) {
+                e.preventDefault();
+                $('#selected_classes option').prop('selected', false);
+                $('#selected_classes').trigger('change');
+            });
+            
+            $('#select-common').click(function(e) {
+                e.preventDefault();
+                $('#selected_classes option').prop('selected', false);
+                // IDs of common objects
+                const commonObjects = ['1', '2', '3', '4', '16', '17', '18', '27', '31', '44', '46', '47', '62', '63', '64', '67', '72', '73', '76', '77'];
+                commonObjects.forEach(id => {
+                    $(`#selected_classes option[value="${id}"]`).prop('selected', true);
+                });
+                $('#selected_classes').trigger('change');
+            });
+        });
+    
         // Display selected file name
         document.getElementById('file').addEventListener('change', function() {
             const fileName = this.files[0] ? this.files[0].name : '';

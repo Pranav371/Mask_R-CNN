@@ -39,6 +39,12 @@
         .badge {
             margin-right: 5px;
         }
+        .class-filter-info {
+            font-size: 0.9rem;
+            font-style: italic;
+            color: #6c757d;
+            margin-top: 0.5rem;
+        }
     </style>
 </head>
 <body>
@@ -46,6 +52,11 @@
         <div class="header">
             <h1>Mask R-CNN Results</h1>
             <p class="lead">Instance segmentation results for your uploaded file</p>
+            {% if filtered_classes %}
+            <div class="class-filter-info">
+                Showing results for selected object classes only
+            </div>
+            {% endif %}
         </div>
 
         <div class="row">
@@ -116,11 +127,59 @@
                                     </tbody>
                                 </table>
                             </div>
+                            
+                            {% if filtered_classes %}
+                            <div class="alert alert-info mt-3">
+                                <small>
+                                    <strong>Note:</strong> Only detecting the classes you selected. Other objects may be present but not shown.
+                                </small>
+                            </div>
+                            {% endif %}
+                            
                         {% elif is_video %}
                             <p>Object counts not available for video processing.</p>
                             <p class="text-muted">Video processing reports object detection frame by frame, but does not aggregate counts across the entire video.</p>
+                            
+                            {% if filtered_classes %}
+                            <div class="alert alert-info mt-3">
+                                <small>
+                                    <strong>Note:</strong> Only detecting the classes you selected. Other objects may be present but not shown.
+                                </small>
+                            </div>
+                            {% endif %}
+                            
                         {% else %}
                             <p>No objects detected with current threshold.</p>
+                            
+                            {% if filtered_classes %}
+                            <div class="alert alert-info">
+                                <small>
+                                    <strong>Note:</strong> Only detecting the classes you selected. Try selecting more classes or adjusting the threshold.
+                                </small>
+                            </div>
+                            {% endif %}
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">Processing Settings</h5>
+                    </div>
+                    <div class="card-body">
+                        <p><strong>Confidence Threshold:</strong> {{ threshold }}</p>
+                        
+                        {% if selected_class_names %}
+                        <div>
+                            <strong>Detected Classes:</strong>
+                            <div class="mt-2">
+                                {% for class_name in selected_class_names %}
+                                <span class="badge bg-secondary mb-1">{{ class_name }}</span>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        {% else %}
+                        <p><strong>Detected Classes:</strong> All COCO classes</p>
                         {% endif %}
                     </div>
                 </div>
