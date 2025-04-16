@@ -26,6 +26,10 @@ You can install all dependencies using:
 ```bash
 pip install -r requirements.txt
 ```
+Or on Windows, you can use the provided batch file:
+```
+install_dependencies.bat
+```
 
 ## Setup and Running
 
@@ -45,7 +49,7 @@ pip install -r requirements.txt
 3. **Important Note on Model Weights**: 
    - The Mask R-CNN model weights file (`mask_rcnn_coco.h5`, ~246MB) is not included in the repository due to its size.
    - You don't need to download this file separately when using our app, as it automatically uses PyTorch's pre-trained model.
-   - If you're working with the TensorFlow implementation (in the Mask-RCNN-TF2 directory), you can download the weights from the [Mask R-CNN releases page](https://github.com/matterport/Mask_RCNN/releases).
+   - If you're working with the TensorFlow implementation, you can download the weights from the [Mask R-CNN releases page](https://github.com/matterport/Mask_RCNN/releases).
 
 4. Run the Flask application:
 
@@ -62,6 +66,26 @@ run.bat
 ```
 http://localhost:5000
 ```
+
+## Project Structure
+
+```
+├── app.py                  # Main Flask application
+├── script.py               # Utility script for processing
+├── requirements.txt        # Package dependencies
+├── install_dependencies.bat # Windows batch file for installing dependencies
+├── run.bat                 # Windows batch file for running the application
+├── static/                 # Static files directory
+│   ├── uploads/            # Stores uploaded image and video files
+│   └── results/            # Stores processed image and video files
+└── templates/              # HTML templates for the web interface
+```
+
+## File Management
+
+- All uploaded and processed files are stored in the `static/uploads/` and `static/results/` directories respectively
+- These media files (images and videos) are excluded from version control via .gitignore
+- Only the directory structure is maintained in the repository using .gitkeep files
 
 ## Usage
 
@@ -80,8 +104,7 @@ This application uses Mask R-CNN with a ResNet-50-FPN backbone, pre-trained on t
 
 ### About the Model Weights
 - The PyTorch implementation automatically downloads the required model weights when first used
-- The original TensorFlow implementation requires the `mask_rcnn_coco.h5` weights file (~246MB)
-- These weight files are excluded from Git tracking via .gitignore
+- The weights files are excluded from Git tracking via .gitignore
 
 ## Technical Details
 

@@ -29,12 +29,6 @@ ENV/
 # PyCharm
 .idea/
 
-# Uploads and results directories (generated content)
-uploads/*
-results/*
-!uploads/.gitkeep
-!results/.gitkeep
-
 # Static directory content - exclude images and videos
 static/uploads/*.jpg
 static/uploads/*.jpeg
