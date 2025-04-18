@@ -6,148 +6,245 @@
     <title>Mask R-CNN Results</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
             --primary-color: #4361ee;
+            --primary-hover: #3a56d4;
             --secondary-color: #3f37c9;
             --accent-color: #4895ef;
+            --light-accent: rgba(67, 97, 238, 0.1);
+            --success-color: #2ecc71;
             --text-color: #333;
+            --text-secondary: #6c757d;
             --bg-color: #f8f9fa;
             --card-bg: #ffffff;
-            --border-radius: 12px;
+            --border-radius: 16px;
+            --box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
+            --transition: all 0.3s ease;
         }
         
         body {
-            padding: 2rem 0;
+            padding: 3rem 0;
             background-color: var(--bg-color);
             color: var(--text-color);
-            font-family: 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            line-height: 1.6;
         }
         
         .container {
-            max-width: 1000px;
+            max-width: 1200px;
         }
         
         .header {
             text-align: center;
             margin-bottom: 3rem;
+            position: relative;
         }
         
         .header h1 {
             font-weight: 700;
             color: var(--primary-color);
-            margin-bottom: 0.5rem;
+            margin-bottom: 0.75rem;
+            font-size: 2.5rem;
+        }
+        
+        .header .lead {
+            font-size: 1.2rem;
+            color: var(--text-secondary);
+            max-width: 80%;
+            margin: 0 auto;
+        }
+        
+        .header:after {
+            content: '';
+            position: absolute;
+            bottom: -15px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 80px;
+            height: 4px;
+            background: linear-gradient(90deg, var(--primary-color), var(--accent-color));
+            border-radius: 2px;
         }
         
         .card {
             border: none;
             border-radius: var(--border-radius);
-            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.05);
-            margin-bottom: 2rem;
-            background-color: var(--card-bg);
+            box-shadow: var(--box-shadow);
+            margin-bottom: 2.5rem;
             overflow: hidden;
+            transition: var(--transition);
+        }
+        
+        .card:hover {
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+            transform: translateY(-3px);
         }
         
         .card-header {
-            background-color: var(--card-bg);
-            border-bottom: 1px solid rgba(0,0,0,0.05);
+            background: linear-gradient(90deg, var(--primary-color), var(--accent-color));
+            color: white;
             font-weight: 600;
-            padding: 1.25rem;
+            padding: 1.25rem 1.5rem;
+            border-bottom: none;
+            font-size: 1.2rem;
+        }
+        
+        .card-header i {
+            margin-right: 10px;
         }
         
         .card-body {
-            padding: 1.5rem;
-        }
-        
-        .tab-content {
-            background-color: white;
-            border-radius: 0 0 var(--border-radius) var(--border-radius);
-            overflow: hidden;
+            padding: 2rem;
         }
         
         .nav-tabs {
             border-bottom: none;
-            background-color: #f8f9fa;
-            border-radius: var(--border-radius) var(--border-radius) 0 0;
-            overflow: hidden;
+            background: transparent;
+            margin-bottom: 1.5rem;
+            gap: 10px;
+        }
+        
+        .nav-tabs .nav-item {
+            margin-right: 5px;
         }
         
         .nav-tabs .nav-link {
             border: none;
             color: var(--text-color);
-            padding: 1rem 1.5rem;
-            font-weight: 500;
-            transition: all 0.2s ease;
+            font-weight: 600;
+            padding: 0.75rem 1.5rem;
+            border-radius: 30px;
+            background-color: #f1f3f5;
+            transition: var(--transition);
         }
         
         .nav-tabs .nav-link:hover:not(.active) {
-            background-color: rgba(67, 97, 238, 0.05);
+            background-color: var(--light-accent);
             color: var(--primary-color);
         }
         
         .nav-tabs .nav-link.active {
             color: white;
-            background-color: var(--primary-color);
+            background: linear-gradient(90deg, var(--primary-color), var(--accent-color));
+            box-shadow: 0 5px 15px rgba(67, 97, 238, 0.3);
+        }
+        
+        .tab-content {
+            background-color: white;
+            border-radius: var(--border-radius);
+            overflow: hidden;
+            transition: var(--transition);
+        }
+        
+        .tab-pane {
+            padding: 1rem;
         }
         
         .result-image-container {
+            position: relative;
             text-align: center;
             margin: 1.5rem 0;
             border-radius: var(--border-radius);
             overflow: hidden;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            transition: var(--transition);
+        }
+        
+        .result-image-container:hover {
+            transform: scale(1.02);
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.15);
         }
         
         .result-image {
             max-width: 100%;
             height: auto;
+            border-radius: var(--border-radius);
+        }
+        
+        .result-video {
+            width: 100%;
+            border-radius: var(--border-radius);
+        }
+        
+        .btn {
+            font-weight: 600;
+            padding: 0.75rem 1.5rem;
+            border-radius: 30px;
+            transition: var(--transition);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-size: 0.9rem;
         }
         
         .btn-primary {
-            background-color: var(--primary-color);
-            border-color: var(--primary-color);
-            padding: 0.7rem 1.5rem;
-            font-weight: 500;
-            border-radius: 30px;
-            transition: all 0.3s ease;
+            background: linear-gradient(90deg, var(--primary-color), var(--accent-color));
+            border: none;
+            box-shadow: 0 5px 15px rgba(67, 97, 238, 0.3);
         }
         
         .btn-primary:hover {
-            background-color: var(--secondary-color);
-            border-color: var(--secondary-color);
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(67, 97, 238, 0.3);
+            background: linear-gradient(90deg, var(--accent-color), var(--primary-color));
+            transform: translateY(-3px);
+            box-shadow: 0 10px 25px rgba(67, 97, 238, 0.4);
         }
         
         .btn-outline-primary {
             color: var(--primary-color);
-            border-color: var(--primary-color);
-            padding: 0.7rem 1.5rem;
-            font-weight: 500;
-            border-radius: 30px;
-            transition: all 0.3s ease;
+            border: 2px solid var(--primary-color);
+            background-color: transparent;
         }
         
         .btn-outline-primary:hover {
             background-color: var(--primary-color);
             border-color: var(--primary-color);
-            transform: translateY(-2px);
+            transform: translateY(-3px);
             box-shadow: 0 5px 15px rgba(67, 97, 238, 0.2);
         }
         
+        .btn-success {
+            background: linear-gradient(90deg, #2ecc71, #27ae60);
+            border: none;
+            box-shadow: 0 5px 15px rgba(46, 204, 113, 0.3);
+        }
+        
+        .btn-success:hover {
+            background: linear-gradient(90deg, #27ae60, #2ecc71);
+            transform: translateY(-3px);
+            box-shadow: 0 10px 25px rgba(46, 204, 113, 0.4);
+        }
+        
+        .btn i {
+            margin-right: 8px;
+        }
+        
         .result-info-container {
-            background-color: #f8f9fa;
+            background-color: var(--light-accent);
             border-radius: var(--border-radius);
-            padding: 1.5rem;
-            margin-bottom: 1.5rem;
+            padding: 1.5rem 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.03);
+        }
+        
+        .result-info-container h4 {
+            color: var(--primary-color);
+            font-weight: 600;
+            margin-bottom: 1.25rem;
+            font-size: 1.3rem;
+            border-bottom: 2px solid rgba(67, 97, 238, 0.2);
+            padding-bottom: 0.75rem;
         }
         
         .result-info-item {
             display: flex;
             justify-content: space-between;
-            margin-bottom: 0.5rem;
-            padding-bottom: 0.5rem;
-            border-bottom: 1px solid #eee;
+            align-items: center;
+            margin-bottom: 0.75rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
         }
         
         .result-info-item:last-child {
@@ -158,111 +255,170 @@
         
         .result-info-label {
             font-weight: 600;
-            color: #555;
+            color: var(--text-color);
+            display: flex;
+            align-items: center;
+        }
+        
+        .result-info-label i {
+            margin-right: 10px;
+            color: var(--primary-color);
+        }
+        
+        .result-info-value {
+            font-weight: 500;
+            color: var(--text-secondary);
         }
         
         .detection-summary {
-            margin-bottom: 1.5rem;
+            margin-bottom: 2rem;
         }
         
         .detection-table {
             border-radius: var(--border-radius);
             overflow: hidden;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.08);
         }
         
         .detection-table thead {
-            background-color: var(--primary-color);
+            background: linear-gradient(90deg, var(--primary-color), var(--accent-color));
             color: white;
         }
         
         .detection-table th {
             font-weight: 600;
             text-transform: uppercase;
-            font-size: 0.85rem;
+            font-size: 0.9rem;
             letter-spacing: 0.5px;
+            padding: 1rem;
+            border: none;
+        }
+        
+        .detection-table td {
+            padding: 1rem;
+            vertical-align: middle;
+            border-color: rgba(0, 0, 0, 0.05);
+            font-weight: 500;
         }
         
         .badge-count {
-            background-color: var(--accent-color);
+            background: linear-gradient(90deg, var(--accent-color), var(--primary-color));
             color: white;
-            border-radius: 20px;
-            padding: 0.35rem 0.75rem;
+            border-radius: 30px;
+            padding: 0.35rem 1rem;
             font-weight: 600;
             font-size: 1rem;
+            display: inline-block;
+            min-width: 50px;
+            text-align: center;
+            box-shadow: 0 3px 10px rgba(67, 97, 238, 0.2);
         }
         
         .actions-container {
             display: flex;
             gap: 1rem;
-            margin-top: 2rem;
-        }
-        
-        .class-pills {
-            display: flex;
+            margin-top: 2.5rem;
             flex-wrap: wrap;
-            gap: 0.5rem;
-            margin-top: 0.5rem;
-        }
-        
-        .class-pill {
-            background-color: rgba(var(--primary-rgb), 0.1);
-            color: var(--primary);
-            border: 1px solid rgba(var(--primary-rgb), 0.2);
-            padding: 0.25rem 0.5rem;
-            border-radius: 15px;
-            font-size: 0.8rem;
-            margin: 0.25rem;
-            display: inline-block;
-            white-space: nowrap;
-        }
-        
-        .video-wrapper {
-            position: relative;
-            width: 100%;
-            background-color: #000;
-            border-radius: var(--border-radius);
-            overflow: hidden;
-            min-height: 300px;
-        }
-        
-        video.result-image {
-            display: block;
-            background-color: #000;
-            width: 100%;
-            min-height: 300px;
-            max-height: 600px;
-            object-fit: contain;
-        }
-        
-        .video-loading, .video-error {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            display: flex;
-            flex-direction: column;
             justify-content: center;
-            align-items: center;
-            background-color: rgba(0, 0, 0, 0.7);
+        }
+        
+        .badge-result {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            background: linear-gradient(90deg, var(--primary-color), var(--accent-color));
             color: white;
-            text-align: center;
-            padding: 1rem;
-            z-index: 10;
+            padding: 0.5rem 1.25rem;
+            font-weight: 600;
+            border-radius: 30px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.15);
+            z-index: 1;
+            font-size: 0.9rem;
         }
         
-        .video-error {
-            background-color: rgba(0, 0, 0, 0.8);
+        .badge-original {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            background: linear-gradient(90deg, #6c757d, #495057);
+            color: white;
+            padding: 0.5rem 1.25rem;
+            font-weight: 600;
+            border-radius: 30px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.15);
+            z-index: 1;
+            font-size: 0.9rem;
         }
         
-        .error-container {
-            padding: 2rem;
-            background-color: #f8f9fa;
-            border-radius: var(--border-radius);
-            color: #6c757d;
-            text-align: center;
-            min-height: 200px;
+        .summary-title {
+            font-weight: 700;
+            color: var(--primary-color);
+            margin-bottom: 1.5rem;
+            position: relative;
+            display: inline-block;
+        }
+        
+        .summary-title:after {
+            content: '';
+            position: absolute;
+            bottom: -8px;
+            left: 0;
+            width: 50px;
+            height: 3px;
+            background: linear-gradient(90deg, var(--primary-color), var(--accent-color));
+            border-radius: 2px;
+        }
+        
+        .file-info {
+            display: flex;
+            align-items: center;
+            font-weight: 500;
+            color: var(--text-secondary);
+            margin-bottom: 1rem;
+            font-size: 1.1rem;
+        }
+        
+        .file-info i {
+            margin-right: 10px;
+            color: var(--primary-color);
+        }
+        
+        .processing-success {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 80px;
+            height: 80px;
+            background-color: rgba(46, 204, 113, 0.1);
+            border-radius: 50%;
+            margin-bottom: 1.5rem;
+            color: var(--success-color);
+            font-size: 2.5rem;
+        }
+        
+        @media (max-width: 768px) {
+            .actions-container {
+                flex-direction: column;
+                width: 100%;
+            }
+            
+            .btn {
+                width: 100%;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .result-info-item {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            
+            .result-info-value {
+                margin-top: 0.25rem;
+                margin-left: 1.75rem;
+            }
         }
     </style>
 </head>
@@ -270,183 +426,182 @@
     <div class="container">
         <div class="header">
             <h1>Mask R-CNN Results</h1>
-            <p class="lead">View your processed image with detected and segmented objects</p>
+            <p class="lead">View your processed image or video with object segmentation</p>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header">
+                <i class="fas fa-check-circle"></i> Processing Complete
+            </div>
+            <div class="card-body text-center">
+                <div class="processing-success">
+                    <i class="fas fa-check"></i>
+                </div>
+                <h4 class="mb-3">Processing Completed Successfully</h4>
+                <div class="file-info">
+                    <i class="fas fa-file-image"></i> {{ original_file }}
+                </div>
+                {% if file_type == 'image' and detected_objects %}
+                <div class="result-info-container mt-4">
+                    <h4><i class="fas fa-chart-bar me-2"></i>Detection Summary</h4>
+                    <div class="table-responsive">
+                        <table class="table detection-table">
+                            <thead>
+                                <tr>
+                                    <th>Object Class</th>
+                                    <th>Count</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for class_name, count in detected_objects.items() %}
+                                <tr>
+                                    <td>{{ class_name }}</td>
+                                    <td><span class="badge-count">{{ count }}</span></td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
         </div>
 
         <div class="card">
-            <div class="card-body p-0">
+            <div class="card-header">
+                <i class="fas fa-images"></i> View Results
+            </div>
+            <div class="card-body">
                 <ul class="nav nav-tabs" id="resultTabs" role="tablist">
                     <li class="nav-item" role="presentation">
-                        <button class="nav-link active" id="processed-tab" data-bs-toggle="tab" data-bs-target="#processed-tab-pane" type="button" role="tab" aria-controls="processed-tab-pane" aria-selected="true">
-                            <i class="fas fa-check-circle me-2"></i>Processed Result
+                        <button class="nav-link active" id="processed-tab" data-bs-toggle="tab" data-bs-target="#processed" type="button" role="tab" aria-controls="processed" aria-selected="true">
+                            <i class="fas fa-magic me-2"></i>Processed
                         </button>
                     </li>
                     <li class="nav-item" role="presentation">
-                        <button class="nav-link" id="original-tab" data-bs-toggle="tab" data-bs-target="#original-tab-pane" type="button" role="tab" aria-controls="original-tab-pane" aria-selected="false">
-                            <i class="fas fa-image me-2"></i>Original File
+                        <button class="nav-link" id="original-tab" data-bs-toggle="tab" data-bs-target="#original" type="button" role="tab" aria-controls="original" aria-selected="false">
+                            <i class="fas fa-image me-2"></i>Original
                         </button>
                     </li>
                 </ul>
                 
                 <div class="tab-content" id="resultTabsContent">
-                    <div class="tab-pane fade show active" id="processed-tab-pane" role="tabpanel" aria-labelledby="processed-tab" tabindex="0">
+                    <div class="tab-pane fade show active" id="processed" role="tabpanel" aria-labelledby="processed-tab">
+                        {% if file_type == 'image' %}
                         <div class="result-image-container">
-                            {% if result_type == 'image' %}
-                                <img src="{{ url_for('static', filename='results/' + result_file) }}" alt="Processed Image with Objects Detected" class="result-image"
-                                     onerror="this.onerror=null; this.src=''; this.alt='Error loading image. The processed image may not be available.'; this.parentElement.classList.add('error-container');">
-                            {% else %}
-                                <div class="video-wrapper">
-                                    <video width="100%" height="auto" controls playsinline class="result-image" id="processed-video">
-                                        <!-- Multiple source formats for better compatibility -->
-                                        <source src="{{ url_for('static', filename='results/' + result_file) }}" type="video/mp4">
-                                        <source src="{{ url_for('static', filename='results/' + result_file) }}" type="video/webm">
-                                        <source src="{{ url_for('static', filename='results/' + result_file) }}" type="video/quicktime">
-                                        <source src="{{ url_for('static', filename='results/' + result_file) }}" type="video/x-msvideo">
-                                        <p>Your browser doesn't support HTML5 video. <a href="{{ url_for('static', filename='results/' + result_file) }}" download>Download the video</a> instead.</p>
-                                    </video>
-                                    <div class="video-loading" id="video-loading-spinner">
-                                        <div class="spinner-border text-primary" role="status">
-                                            <span class="visually-hidden">Loading...</span>
-                                        </div>
-                                        <p class="mt-2">Loading video... This may take a moment.</p>
-                                    </div>
-                                    <div class="video-error" id="video-error-message" style="display: none;">
-                                        <i class="fas fa-exclamation-triangle text-warning mb-2" style="font-size: 2rem;"></i>
-                                        <p>Error loading video. The processed video may not be available or is in an unsupported format.</p>
-                                        <p><a href="{{ url_for('static', filename='results/' + result_file) }}" download class="btn btn-sm btn-primary mt-2">Download Video</a></p>
-                                    </div>
-                                </div>
-                            {% endif %}
+                            <div class="badge-result">Processed</div>
+                            <img src="{{ url_for('static', filename='results/' + result_file) }}" alt="Processed Image with Objects Detected" class="result-image">
                         </div>
+                        <div class="text-center">
+                            <a href="{{ url_for('static', filename='results/' + result_file) }}" download class="btn btn-success">
+                                <i class="fas fa-download"></i> Download Processed Image
+                            </a>
+                        </div>
+                        {% else %}
+                        <div class="result-image-container">
+                            <div class="badge-result">Processed</div>
+                            <video controls class="result-video">
+                                <source src="{{ url_for('static', filename='results/' + result_file) }}" type="video/mp4">
+                                <source src="{{ url_for('static', filename='results/' + result_file) }}" type="video/webm">
+                                <source src="{{ url_for('static', filename='results/' + result_file) }}" type="video/quicktime">
+                                <source src="{{ url_for('static', filename='results/' + result_file) }}" type="video/x-msvideo">
+                                <p>Your browser doesn't support HTML5 video. <a href="{{ url_for('static', filename='results/' + result_file) }}" download>Download the video</a> instead.</p>
+                            </video>
+                        </div>
+                        <div class="text-center mt-3">
+                            <p><a href="{{ url_for('static', filename='results/' + result_file) }}" download class="btn btn-success">
+                                <i class="fas fa-download"></i> Download Processed Video
+                            </a></p>
+                        </div>
+                        {% endif %}
                     </div>
                     
-                    <div class="tab-pane fade" id="original-tab-pane" role="tabpanel" aria-labelledby="original-tab" tabindex="0">
+                    <div class="tab-pane fade" id="original" role="tabpanel" aria-labelledby="original-tab">
+                        {% if file_type == 'image' %}
                         <div class="result-image-container">
-                            {% if result_type == 'image' %}
-                                <img src="{{ url_for('static', filename='uploads/' + original_file) }}" alt="Original Image" class="result-image"
-                                     onerror="this.onerror=null; this.src=''; this.alt='Error loading image. The original image may not be available.'; this.parentElement.classList.add('error-container');">
-                            {% else %}
-                                <div class="video-wrapper">
-                                    <video width="100%" height="auto" controls playsinline class="result-image" id="original-video">
-                                        <!-- Multiple source formats for better compatibility -->
-                                        <source src="{{ url_for('static', filename='uploads/' + original_file) }}" type="video/mp4">
-                                        <source src="{{ url_for('static', filename='uploads/' + original_file) }}" type="video/webm">
-                                        <source src="{{ url_for('static', filename='uploads/' + original_file) }}" type="video/quicktime">
-                                        <source src="{{ url_for('static', filename='uploads/' + original_file) }}" type="video/x-msvideo">
-                                        <p>Your browser doesn't support HTML5 video. <a href="{{ url_for('static', filename='uploads/' + original_file) }}" download>Download the video</a> instead.</p>
-                                    </video>
-                                    <div class="video-loading" id="original-video-loading-spinner">
-                                        <div class="spinner-border text-primary" role="status">
-                                            <span class="visually-hidden">Loading...</span>
-                                        </div>
-                                        <p class="mt-2">Loading video... This may take a moment.</p>
-                                    </div>
-                                    <div class="video-error" id="original-video-error-message" style="display: none;">
-                                        <i class="fas fa-exclamation-triangle text-warning mb-2" style="font-size: 2rem;"></i>
-                                        <p>Error loading video. The original video may not be available or is in an unsupported format.</p>
-                                        <p><a href="{{ url_for('static', filename='uploads/' + original_file) }}" download class="btn btn-sm btn-primary mt-2">Download Video</a></p>
-                                    </div>
-                                </div>
-                            {% endif %}
+                            <div class="badge-original">Original</div>
+                            <img src="{{ url_for('static', filename='uploads/' + original_file) }}" alt="Original Image" class="result-image">
                         </div>
+                        {% else %}
+                        <div class="result-image-container">
+                            <div class="badge-original">Original</div>
+                            <video controls class="result-video">
+                                <source src="{{ url_for('static', filename='uploads/' + original_file) }}" type="video/mp4">
+                                <source src="{{ url_for('static', filename='uploads/' + original_file) }}" type="video/webm">
+                                <source src="{{ url_for('static', filename='uploads/' + original_file) }}" type="video/quicktime">
+                                <source src="{{ url_for('static', filename='uploads/' + original_file) }}" type="video/x-msvideo">
+                                <p>Your browser doesn't support HTML5 video. <a href="{{ url_for('static', filename='uploads/' + original_file) }}" download>Download the video</a> instead.</p>
+                            </video>
+                        </div>
+                        <div class="text-center mt-3">
+                            <p><a href="{{ url_for('static', filename='uploads/' + original_file) }}" download class="btn btn-outline-primary">
+                                <i class="fas fa-download"></i> Download Original Video
+                            </a></p>
+                        </div>
+                        {% endif %}
                     </div>
+                </div>
+                
+                <div class="actions-container">
+                    <a href="{{ url_for('index') }}" class="btn btn-outline-primary">
+                        <i class="fas fa-arrow-left"></i> Process Another File
+                    </a>
+                    {% if file_type == 'image' %}
+                    <a href="{{ url_for('static', filename='results/' + result_file) }}" download class="btn btn-primary">
+                        <i class="fas fa-download"></i> Download Result
+                    </a>
+                    {% endif %}
                 </div>
             </div>
         </div>
-
-        <div class="row">
-            <div class="col-md-6">
-                <div class="card detection-summary">
-                    <div class="card-header">
-                        <i class="fas fa-list-check me-2"></i>Detection Summary
-                    </div>
-                    <div class="card-body">
-                        <p>The following objects were detected in your {{ result_type|default('image') }}:</p>
-                        <table class="table table-striped detection-table">
-                            <thead>
-                                <tr>
-                                    <th>Class</th>
-                                    <th class="text-end">Count</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% if class_counts is defined and class_counts %}
-                                    {% for class_name, count in class_counts.items() %}
-                                        <tr>
-                                            <td>{{ class_name }}</td>
-                                            <td class="text-end"><span class="badge-count">{{ count }}</span></td>
-                                        </tr>
-                                    {% endfor %}
-                                {% else %}
-                                    <tr>
-                                        <td colspan="2" class="text-center">No objects detected</td>
-                                    </tr>
-                                {% endif %}
-                            </tbody>
-                            <tfoot>
-                                <tr class="table-primary">
-                                    <td><strong>Total Objects</strong></td>
-                                    <td class="text-end"><strong>{{ total_objects|default(0) }}</strong></td>
-                                </tr>
-                            </tfoot>
-                        </table>
-                    </div>
-                </div>
+        
+        <div class="card">
+            <div class="card-header">
+                <i class="fas fa-info-circle"></i> Processing Information
             </div>
-            
-            <div class="col-md-6">
-                <div class="card">
-                    <div class="card-header">
-                        <i class="fas fa-gear me-2"></i>Processing Information
-                    </div>
-                    <div class="card-body">
-                        <div class="result-info-container">
-                            <div class="result-info-item">
-                                <span class="result-info-label">File Type:</span>
-                                <span>{{ result_type|default('image')|capitalize }}</span>
-                            </div>
-                            
-                            <div class="result-info-item">
-                                <span class="result-info-label">Confidence Threshold:</span>
-                                <span>{{ threshold|default('0.7') }}</span>
-                            </div>
-                            
-                            <div class="result-info-item">
-                                <span class="result-info-label">Classes Detected:</span>
-                                <span>{{ class_counts|default({})|length }} / {{ total_classes|default(80) }}</span>
-                            </div>
-                            
-                            <div class="result-info-item">
-                                <span class="result-info-label">Selected Classes:</span>
-                                <div class="w-100">
-                                    {% if selected_classes is defined and selected_classes %}
-                                        <div class="class-pills">
-                                            {% for class_name in selected_classes %}
-                                                <span class="class-pill">{{ class_name }}</span>
-                                            {% endfor %}
-                                        </div>
-                                    {% else %}
-                                        <span>All classes</span>
-                                    {% endif %}
-                                </div>
-                            </div>
-                            
-                            <div class="result-info-item">
-                                <span class="result-info-label">Processing Time:</span>
-                                <span>{{ processing_time|default('0') }} seconds</span>
-                            </div>
+            <div class="card-body">
+                <div class="result-info-container">
+                    <h4>File Details</h4>
+                    <div class="result-info-item">
+                        <div class="result-info-label">
+                            <i class="fas fa-file"></i> File Type
                         </div>
-                        
-                        <div class="actions-container">
-                            <a href="{{ url_for('index') }}" class="btn btn-outline-primary">
-                                <i class="fas fa-arrow-left me-2"></i>Process Another File
-                            </a>
-                            
-                            <a href="{{ url_for('static', filename='results/' + result_file) }}" download class="btn btn-primary">
-                                <i class="fas fa-download me-2"></i>Download Result
-                            </a>
+                        <div class="result-info-value">
+                            {% if file_type == 'image' %}
+                            Image ({{ original_file.split('.')[-1].upper() }})
+                            {% else %}
+                            Video ({{ original_file.split('.')[-1].upper() }})
+                            {% endif %}
                         </div>
                     </div>
+                    <div class="result-info-item">
+                        <div class="result-info-label">
+                            <i class="fas fa-ruler"></i> Confidence Threshold
+                        </div>
+                        <div class="result-info-value">{{ threshold }}</div>
+                    </div>
+                    {% if file_type == 'image' and detected_objects %}
+                    <div class="result-info-item">
+                        <div class="result-info-label">
+                            <i class="fas fa-tag"></i> Total Objects Detected
+                        </div>
+                        <div class="result-info-value">{{ detected_objects.values()|sum }}</div>
+                    </div>
+                    <div class="result-info-item">
+                        <div class="result-info-label">
+                            <i class="fas fa-object-group"></i> Object Classes
+                        </div>
+                        <div class="result-info-value">{{ detected_objects.keys()|list|join(', ') }}</div>
+                    </div>
+                    {% endif %}
+                    {% if selected_classes and selected_classes|length > 0 %}
+                    <div class="result-info-item">
+                        <div class="result-info-label">
+                            <i class="fas fa-filter"></i> Selected Classes Filter
+                        </div>
+                        <div class="result-info-value">{{ selected_classes|join(', ') }}</div>
+                    </div>
+                    {% endif %}
                 </div>
             </div>
         </div>
@@ -454,78 +609,5 @@
 
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
-    
-    {% if result_type == 'video' %}
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            // Function to handle video errors with retry logic
-            function setupVideoHandling(videoElement, loadingElement, errorElement, retryCount = 3) {
-                if (!videoElement) return;
-                
-                // Show loading spinner initially
-                loadingElement.style.display = 'flex';
-                
-                let attempts = 0;
-                let videoTimeout;
-                
-                function tryPlayVideo() {
-                    if (attempts >= retryCount) {
-                        // If all attempts fail, show error
-                        loadingElement.style.display = 'none';
-                        errorElement.style.display = 'flex';
-                        return;
-                    }
-                    
-                    attempts++;
-                    
-                    // Try to load the video
-                    videoElement.load();
-                    
-                    // Set timeout for this attempt
-                    videoTimeout = setTimeout(function() {
-                        console.log(`Video load attempt ${attempts} timed out, retrying...`);
-                        tryPlayVideo();
-                    }, 20000); // 20 seconds per attempt
-                }
-                
-                // When video can play
-                videoElement.addEventListener('canplay', function() {
-                    loadingElement.style.display = 'none';
-                    clearTimeout(videoTimeout);
-                });
-                
-                // When video encounters an error
-                videoElement.addEventListener('error', function(e) {
-                    console.error('Video error:', e);
-                    if (attempts < retryCount) {
-                        console.log(`Video error on attempt ${attempts}, retrying...`);
-                        clearTimeout(videoTimeout);
-                        tryPlayVideo();
-                    } else {
-                        loadingElement.style.display = 'none';
-                        errorElement.style.display = 'flex';
-                    }
-                });
-                
-                // Start the first attempt
-                tryPlayVideo();
-            }
-            
-            // Set up processed video
-            setupVideoHandling(
-                document.getElementById('processed-video'),
-                document.getElementById('video-loading-spinner'),
-                document.getElementById('video-error-message')
-            );
-            
-            // Set up original video
-            setupVideoHandling(
-                document.getElementById('original-video'),
-                document.getElementById('original-video-loading-spinner'),
-                document.getElementById('original-video-error-message')
-            );
-        });
-    </script>
-    {% endif %}
 </body>
 </html> 
