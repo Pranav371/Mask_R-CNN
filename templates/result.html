@@ -545,7 +545,7 @@
                             <div class="detection-bar-item">
                                 <div class="detection-bar-label">{{ class_name }}</div>
                                 <div class="detection-bar-container">
-                                    <div class="detection-bar" style="width: {{ (count / detected_objects.values()|sum * 100)|round }}%">
+                                    <div class="detection-bar" data-width="{{ (count / detected_objects.values()|sum * 100)|round }}">
                                         <span>{{ count }}</span>
                                     </div>
                                 </div>
@@ -811,6 +811,10 @@
             const bars = document.querySelectorAll('.detection-bar');
             if (bars.length > 0) {
                 bars.forEach((bar, index) => {
+                    // Set width from data attribute
+                    const width = bar.getAttribute('data-width');
+                    bar.style.width = width + '%';
+                    
                     // Add a slight delay for each bar for a cascade effect
                     bar.style.animationDelay = (index * 0.1) + 's';
                 });
