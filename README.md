@@ -11,6 +11,48 @@ This is a Flask web application that provides a user-friendly interface for perf
 - Summary of detected objects for images
 - Side-by-side comparison of original and processed files
 - Download capabilities for processed results
+- **NEW: Annotation Editor for creating and editing object annotations**
+- **NEW: Export annotations in multiple formats (COCO JSON, Pascal VOC, YOLO)**
+- **NEW: Real-time annotation editing with visual tools**
+
+## Annotation Editor
+
+The new Annotation Editor feature allows you to:
+
+1. **Edit and create object annotations:**
+   - View automatically generated annotations from the Mask R-CNN model
+   - Add new annotations manually
+   - Edit existing bounding boxes and object classifications
+   - Delete unwanted annotations
+
+2. **Annotation Tools:**
+   - Move Tool: Pan and navigate around the image
+   - Box Tool: Create and modify bounding boxes
+   - Mask Tool: Edit segmentation masks
+   - Eraser Tool: Remove parts of segmentation masks
+   - Zoom controls for detailed editing
+
+3. **Export Annotations in Multiple Formats:**
+   - **COCO JSON:** Standard format for instance segmentation tasks
+   - **Pascal VOC:** XML-based format used by many object detection frameworks
+   - **YOLO:** Simple text format for real-time object detection
+
+4. **Cross-Platform Support:**
+   - Works on desktop and mobile devices
+   - Responsive design adapts to different screen sizes
+   - GPU-accelerated for faster processing when available
+
+To use the Annotation Editor:
+1. Upload and process an image
+2. On the results page, click the "Edit Annotations" button
+3. Use the editing tools to modify annotations as needed
+4. Select your preferred export format and click "Export Annotations"
+
+This feature is particularly useful for:
+- Creating custom training datasets
+- Correcting model predictions
+- Exporting annotations for use in other machine learning projects
+- Fine-tuning detection results before further processing
 
 ## Requirements
 
@@ -151,7 +193,13 @@ pip3 install torch torchvision torchaudio
    - Switch between the processed and original views
    - See a summary of detected objects (for images)
    - Download the processed image (for images)
+   - Access the Annotation Editor to modify or export annotations
    - Process another file
+5. Annotation Editor functionality:
+   - When viewing an image result, click the "Edit Annotations" button
+   - Use the provided tools to modify existing annotations or add new ones
+   - Export annotations in your preferred format (COCO JSON, Pascal VOC, or YOLO)
+   - Download the exported annotations for use in other ML projects
 
 ## Model Information
 
@@ -189,6 +237,9 @@ The GPU version includes:
 - Real-time performance metrics 
 - Detailed information about GPU usage
 - Visual indicators showing GPU utilization
+- All annotation and export features available in the CPU version, accelerated by GPU
+
+**Note:** The annotation and export functionality is fully implemented in both the CPU (`app.py`) and GPU (`app_gpu.py`) versions, providing a consistent experience regardless of which version you choose to run. The GPU version offers faster processing for generating the initial annotations.
 
 For complete instructions, requirements, and troubleshooting for GPU acceleration, please refer to [README_GPU.md](README_GPU.md).
 
