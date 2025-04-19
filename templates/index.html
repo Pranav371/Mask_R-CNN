@@ -514,6 +514,9 @@
                 <a href="{{ url_for('camera') }}" class="btn btn-primary">
                     <i class="fas fa-video me-2"></i>Try Live Camera Detection
                 </a>
+                <button class="btn btn-outline-primary ms-2" id="annotation-editor-btn" disabled style="display: none;">
+                    <i class="fas fa-edit me-2"></i>Upload & Process First
+                </button>
             </div>
         </div>
 
@@ -906,6 +909,18 @@
             const fileName = this.files[0] ? this.files[0].name : '';
             document.getElementById('file-name').textContent = fileName;
             document.getElementById('submit-btn').disabled = !fileName;
+            
+            // Update annotation editor button
+            const annotationEditorBtn = document.getElementById('annotation-editor-btn');
+            if (fileName && (fileName.toLowerCase().endsWith('.jpg') || 
+                             fileName.toLowerCase().endsWith('.jpeg') || 
+                             fileName.toLowerCase().endsWith('.png'))) {
+                annotationEditorBtn.style.display = 'inline-block';
+                annotationEditorBtn.innerHTML = '<i class="fas fa-edit me-2"></i>Upload & Process First';
+                annotationEditorBtn.disabled = true;
+            } else {
+                annotationEditorBtn.style.display = 'none';
+            }
         });
         
         // Update threshold value display
@@ -947,8 +962,21 @@
             const dt = e.dataTransfer;
             const files = dt.files;
             document.getElementById('file').files = files;
-            document.getElementById('file-name').textContent = files[0].name;
+            const fileName = files[0].name;
+            document.getElementById('file-name').textContent = fileName;
             document.getElementById('submit-btn').disabled = false;
+            
+            // Update annotation editor button
+            const annotationEditorBtn = document.getElementById('annotation-editor-btn');
+            if (fileName && (fileName.toLowerCase().endsWith('.jpg') || 
+                             fileName.toLowerCase().endsWith('.jpeg') || 
+                             fileName.toLowerCase().endsWith('.png'))) {
+                annotationEditorBtn.style.display = 'inline-block';
+                annotationEditorBtn.innerHTML = '<i class="fas fa-edit me-2"></i>Upload & Process First';
+                annotationEditorBtn.disabled = true;
+            } else {
+                annotationEditorBtn.style.display = 'none';
+            }
         }
         
         document.addEventListener('DOMContentLoaded', function() {

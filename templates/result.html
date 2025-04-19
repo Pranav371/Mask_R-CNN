@@ -706,6 +706,9 @@
                     <a href="{{ url_for('static', filename='results/' + result_file) }}" download class="btn btn-primary">
                         <i class="fas fa-download"></i> Download Result
                     </a>
+                    <a href="{{ url_for('annotation_editor', filename=original_file) }}" class="btn btn-success">
+                        <i class="fas fa-edit"></i> Edit Annotations
+                    </a>
                     {% endif %}
                 </div>
             </div>

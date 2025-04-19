@@ -1,0 +1,1015 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Annotation Editor - Mask R-CNN</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #4361ee;
+            --primary-hover: #3a56d4;
+            --secondary-color: #3f37c9;
+            --accent-color: #4895ef;
+            --light-accent: rgba(67, 97, 238, 0.1);
+            --success-color: #2ecc71;
+            --text-color: #333;
+            --text-secondary: #6c757d;
+            --bg-color: #f8f9fa;
+            --card-bg: #ffffff;
+            --border-radius: 16px;
+            --box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
+            --transition: all 0.3s ease;
+        }
+        
+        body {
+            padding: 2rem 0;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            line-height: 1.6;
+            /* Ensure the page is scrollable */
+            height: auto;
+            min-height: 100vh;
+            overflow-y: auto;
+        }
+        
+        .container {
+            max-width: 1400px;
+            padding-bottom: 100px;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 2rem;
+            position: relative;
+        }
+        
+        .header h1 {
+            font-weight: 700;
+            color: var(--primary-color);
+            margin-bottom: 0.75rem;
+            font-size: 2.5rem;
+        }
+        
+        .header .lead {
+            font-size: 1.2rem;
+            color: var(--text-secondary);
+            max-width: 80%;
+            margin: 0 auto;
+        }
+        
+        .card {
+            border: none;
+            border-radius: var(--border-radius);
+            box-shadow: var(--box-shadow);
+            margin-bottom: 2rem;
+            overflow: visible; /* Changed from hidden to visible */
+            transition: var(--transition);
+        }
+        
+        .card-header {
+            background: linear-gradient(90deg, var(--primary-color), var(--accent-color));
+            color: white;
+            font-weight: 600;
+            padding: 1.25rem 1.5rem;
+            border-bottom: none;
+            font-size: 1.2rem;
+        }
+        
+        .card-header i {
+            margin-right: 10px;
+        }
+        
+        .card-body {
+            padding: 2rem;
+        }
+        
+        .editor-container {
+            display: flex;
+            flex-direction: column;
+            /* Remove fixed height constraint */
+            height: auto;
+            min-height: 700px;
+        }
+        
+        .editor-main {
+            display: flex;
+            flex: 1;
+            gap: 20px;
+            margin-bottom: 20px;
+            /* Set minimum height */
+            min-height: 500px;
+        }
+        
+        .editor-canvas-container {
+            flex: 3;
+            position: relative;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            overflow: hidden;
+            background-color: #f1f1f1;
+            /* Set fixed height */
+            height: 500px;
+        }
+        
+        #editor-canvas {
+            width: 100%;
+            height: 100%;
+            cursor: crosshair;
+        }
+        
+        .editor-sidebar {
+            flex: 1;
+            border-radius: 8px;
+            padding: 15px;
+            background-color: var(--light-accent);
+            overflow-y: auto;
+            /* Adjust height to match canvas */
+            height: 500px;
+            max-height: 500px;
+        }
+        
+        .annotation-item {
+            background-color: white;
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            border-left: 4px solid var(--primary-color);
+            transition: var(--transition);
+        }
+        
+        .annotation-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 10px rgba(0, 0, 0, 0.1);
+        }
+        
+        .annotation-item.selected {
+            background-color: var(--light-accent);
+            border-left-color: var(--accent-color);
+            box-shadow: 0 5px 15px rgba(67, 97, 238, 0.2);
+        }
+        
+        .annotation-class {
+            font-weight: 600;
+            color: var(--primary-color);
+            margin-bottom: 5px;
+        }
+        
+        .annotation-score {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            margin-bottom: 5px;
+        }
+        
+        .annotation-controls {
+            display: flex;
+            gap: 8px;
+            margin-top: 8px;
+        }
+        
+        .annotation-controls button {
+            border: none;
+            border-radius: 20px;
+            padding: 0.3rem 0.6rem;
+            font-size: 0.8rem;
+            background-color: var(--light-accent);
+            color: var(--primary-color);
+            transition: var(--transition);
+        }
+        
+        .annotation-controls button:hover {
+            background-color: var(--primary-color);
+            color: white;
+        }
+        
+        .editor-toolbar {
+            display: flex;
+            justify-content: space-between;
+            gap: 20px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+        
+        .toolbar-section {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        
+        .btn {
+            font-weight: 600;
+            padding: 0.75rem 1.5rem;
+            border-radius: 30px;
+            transition: var(--transition);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-size: 0.9rem;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(90deg, var(--primary-color), var(--accent-color));
+            border: none;
+            box-shadow: 0 5px 15px rgba(67, 97, 238, 0.3);
+        }
+        
+        .btn-outline-primary {
+            color: var(--primary-color);
+            border: 2px solid var(--primary-color);
+            background-color: transparent;
+        }
+        
+        .btn-sm {
+            padding: 0.5rem 1rem;
+            font-size: 0.8rem;
+        }
+        
+        .btn i {
+            margin-right: 8px;
+        }
+        
+        .badge-count {
+            background: linear-gradient(90deg, var(--accent-color), var(--primary-color));
+            color: white;
+            border-radius: 30px;
+            padding: 0.35rem 0.8rem;
+            font-weight: 600;
+            font-size: 0.8rem;
+            display: inline-block;
+            min-width: 40px;
+            text-align: center;
+            box-shadow: 0 3px 10px rgba(67, 97, 238, 0.2);
+        }
+        
+        .export-section {
+            background-color: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 30px;
+            /* Ensure it's visible */
+            position: relative;
+            display: block;
+            width: 100%;
+        }
+        
+        .export-options {
+            display: flex;
+            gap: 15px;
+            margin-top: 15px;
+        }
+        
+        .format-option {
+            flex: 1;
+            text-align: center;
+            border: 2px solid var(--light-accent);
+            border-radius: 10px;
+            padding: 20px 15px;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+        
+        .format-option:hover {
+            border-color: var(--primary-color);
+            background-color: var(--light-accent);
+            transform: translateY(-5px);
+        }
+        
+        .format-option.selected {
+            border-color: var(--primary-color);
+            background-color: var(--light-accent);
+        }
+        
+        .format-option h4 {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-top: 10px;
+            color: var(--text-color);
+        }
+        
+        .format-option p {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            margin-top: 5px;
+        }
+        
+        .format-option i {
+            font-size: 2rem;
+            color: var(--primary-color);
+        }
+        
+        .canvas-tools {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            background-color: white;
+            border-radius: 8px;
+            padding: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            z-index: 100;
+        }
+        
+        .canvas-tool {
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: var(--transition);
+            color: var(--text-color);
+            background-color: #f8f9fa;
+        }
+        
+        .canvas-tool:hover {
+            background-color: var(--light-accent);
+            color: var(--primary-color);
+        }
+        
+        .canvas-tool.active {
+            background-color: var(--primary-color);
+            color: white;
+        }
+        
+        #zoom-level {
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+            background-color: white;
+            border-radius: 20px;
+            padding: 5px 12px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+        }
+        
+        .gpu-badge {
+            display: inline-flex;
+            align-items: center;
+            margin-top: 1rem;
+            padding: 0.5rem 1.25rem;
+            background: linear-gradient(90deg, #ff9500, #ff3800);
+            color: white;
+            font-weight: 600;
+            border-radius: 30px;
+            box-shadow: 0 5px 15px rgba(255, 120, 0, 0.3);
+            animation: pulse 2s infinite;
+        }
+        
+        .gpu-badge i {
+            margin-right: 8px;
+            animation: bolt 1.5s infinite;
+        }
+        
+        @keyframes pulse {
+            0% {
+                box-shadow: 0 5px 15px rgba(255, 120, 0, 0.3);
+            }
+            50% {
+                box-shadow: 0 5px 20px rgba(255, 120, 0, 0.6);
+            }
+            100% {
+                box-shadow: 0 5px 15px rgba(255, 120, 0, 0.3);
+            }
+        }
+        
+        @keyframes bolt {
+            0%, 100% {
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(1.2);
+            }
+        }
+        
+        @media (max-width: 992px) {
+            .editor-main {
+                flex-direction: column;
+            }
+            .editor-sidebar {
+                max-height: 300px;
+                height: 300px;
+            }
+            .editor-canvas-container {
+                height: 400px;
+            }
+            .export-options {
+                flex-direction: column;
+            }
+        }
+        
+        /* Make sure the entire page is scrollable */
+        html, body {
+            overflow-y: auto !important;
+            height: auto !important;
+            min-height: 100%;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Annotation Editor</h1>
+            <p class="lead">Edit and export annotations for machine learning datasets</p>
+            {% if gpu_info and gpu_info.available %}
+            <div class="gpu-badge">
+                <i class="fas fa-bolt"></i> GPU Accelerated ({{ gpu_info.name }})
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Add additional buttons for navigation -->
+        <div class="d-flex justify-content-center mb-4">
+            <a href="{{ url_for('index') }}" class="btn btn-outline-primary me-3">
+                <i class="fas fa-home"></i> Back to Home
+            </a>
+            <a href="#export-section" class="btn btn-primary">
+                <i class="fas fa-download"></i> Go to Export
+            </a>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <i class="fas fa-edit"></i> Edit Annotations
+            </div>
+            <div class="card-body">
+                <div class="editor-toolbar">
+                    <div class="toolbar-section">
+                        <a href="{{ url_for('index') }}" class="btn btn-outline-primary btn-sm">
+                            <i class="fas fa-arrow-left"></i> Back to Home
+                        </a>
+                        <span class="badge-count" id="annotation-count">0 Objects</span>
+                    </div>
+                    <div class="toolbar-section">
+                        <button id="add-annotation" class="btn btn-primary btn-sm">
+                            <i class="fas fa-plus"></i> Add Annotation
+                        </button>
+                        <button id="delete-selected" class="btn btn-outline-primary btn-sm">
+                            <i class="fas fa-trash"></i> Delete Selected
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="editor-container">
+                    <div class="editor-main">
+                        <div class="editor-canvas-container">
+                            <canvas id="editor-canvas"></canvas>
+                            <div class="canvas-tools">
+                                <div class="canvas-tool active" id="tool-move" title="Move Tool">
+                                    <i class="fas fa-hand-paper"></i>
+                                </div>
+                                <div class="canvas-tool" id="tool-box" title="Box Tool">
+                                    <i class="fas fa-vector-square"></i>
+                                </div>
+                                <div class="canvas-tool" id="tool-mask" title="Mask Tool">
+                                    <i class="fas fa-brush"></i>
+                                </div>
+                                <div class="canvas-tool" id="tool-eraser" title="Eraser Tool">
+                                    <i class="fas fa-eraser"></i>
+                                </div>
+                                <div class="canvas-tool" id="tool-zoom-in" title="Zoom In">
+                                    <i class="fas fa-search-plus"></i>
+                                </div>
+                                <div class="canvas-tool" id="tool-zoom-out" title="Zoom Out">
+                                    <i class="fas fa-search-minus"></i>
+                                </div>
+                                <div class="canvas-tool" id="tool-fit" title="Fit to View">
+                                    <i class="fas fa-expand"></i>
+                                </div>
+                            </div>
+                            <div id="zoom-level">100%</div>
+                        </div>
+                        <div class="editor-sidebar">
+                            <h5 class="mb-3">Annotations</h5>
+                            <div id="annotations-list">
+                                <!-- Annotations will be populated here -->
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="export-section" id="export-section">
+                        <h4><i class="fas fa-file-export me-2"></i>Export Annotations</h4>
+                        <p class="text-secondary">Choose a format to export your annotations:</p>
+                        <div class="export-options">
+                            <div class="format-option selected" data-format="coco">
+                                <i class="fas fa-file-code"></i>
+                                <h4>COCO JSON</h4>
+                                <p>Standard format for instance segmentation</p>
+                            </div>
+                            <div class="format-option" data-format="pascal_voc">
+                                <i class="fas fa-file-alt"></i>
+                                <h4>Pascal VOC</h4>
+                                <p>XML format for object detection</p>
+                            </div>
+                            <div class="format-option" data-format="yolo">
+                                <i class="fas fa-file-csv"></i>
+                                <h4>YOLO</h4>
+                                <p>Simple text format for real-time detection</p>
+                            </div>
+                        </div>
+                        <div class="text-center mt-4">
+                            <button id="btn-export" class="btn btn-primary">
+                                <i class="fas fa-download"></i> Export Annotations
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // The filename of the processed image
+        const IMAGE_FILENAME = '{{ filename }}';
+        const API_URL = '{{ url_for("get_annotations", filename=filename) }}';
+        const SAVE_URL = '{{ url_for("save_annotations") }}';
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            // Constants
+            const canvas = document.getElementById('editor-canvas');
+            const ctx = canvas.getContext('2d');
+            const annotationsList = document.getElementById('annotations-list');
+            const annotationCount = document.getElementById('annotation-count');
+            const exportBtn = document.getElementById('btn-export');
+            const deleteSelectedBtn = document.getElementById('delete-selected');
+            const addAnnotationBtn = document.getElementById('add-annotation');
+            
+            // Make sure export button is visible
+            if (exportBtn) {
+                console.log("Export button exists in the DOM");
+                exportBtn.style.display = "inline-block";
+                exportBtn.style.visibility = "visible";
+            } else {
+                console.error("Export button not found!");
+            }
+            
+            // Variables for tracking state
+            let annotations = {};
+            try {
+                annotations = JSON.parse('{{ annotations|safe }}');
+                console.log("Annotations loaded successfully:", annotations);
+            } catch (error) {
+                console.error("Error parsing annotations:", error);
+                annotations = {
+                    "images": [{"id": 1, "width": 800, "height": 600, "file_name": "{{ filename }}"}],
+                    "annotations": [],
+                    "categories": []
+                };
+            }
+            
+            let selectedAnnotationIdx = -1;
+            let originalImage = new Image();
+            let scale = 1;
+            let offsetX = 0;
+            let offsetY = 0;
+            let isDragging = false;
+            let lastX = 0;
+            let lastY = 0;
+            let selectedExportFormat = 'coco';
+            
+            // Initialize canvas
+            function initCanvas() {
+                // Set canvas size
+                resizeCanvas();
+                window.addEventListener('resize', resizeCanvas);
+                
+                // Load original image
+                originalImage.src = "{{ url_for('static', filename='uploads/' + filename) }}";
+                originalImage.onload = function() {
+                    console.log("Image loaded successfully:", originalImage.width, "x", originalImage.height);
+                    fitImageToCanvas();
+                    drawCanvas();
+                    updateAnnotationsList();
+                };
+                originalImage.onerror = function() {
+                    console.error("Error loading image:", originalImage.src);
+                    // Display error message on canvas
+                    ctx.fillStyle = 'white';
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+                    ctx.font = '16px Arial';
+                    ctx.fillStyle = 'red';
+                    ctx.textAlign = 'center';
+                    ctx.fillText("Error loading image. Please make sure the file exists.", canvas.width / 2, canvas.height / 2);
+                };
+                
+                // Add event listeners for interaction
+                canvas.addEventListener('mousedown', handleMouseDown);
+                canvas.addEventListener('mousemove', handleMouseMove);
+                canvas.addEventListener('mouseup', handleMouseUp);
+                canvas.addEventListener('wheel', handleWheel);
+                
+                // Tool selection
+                document.querySelectorAll('.canvas-tool').forEach(tool => {
+                    tool.addEventListener('click', function() {
+                        console.log("Tool selected:", this.id);
+                        document.querySelectorAll('.canvas-tool').forEach(t => t.classList.remove('active'));
+                        this.classList.add('active');
+                    });
+                });
+                
+                // Zoom tools
+                document.getElementById('tool-zoom-in').addEventListener('click', function() {
+                    scale *= 1.2;
+                    scale = Math.min(scale, 5);
+                    updateZoomLevel();
+                    drawCanvas();
+                });
+                
+                document.getElementById('tool-zoom-out').addEventListener('click', function() {
+                    scale *= 0.8;
+                    scale = Math.max(scale, 0.1);
+                    updateZoomLevel();
+                    drawCanvas();
+                });
+                
+                document.getElementById('tool-fit').addEventListener('click', function() {
+                    fitImageToCanvas();
+                    drawCanvas();
+                });
+                
+                // Export format selection
+                document.querySelectorAll('.format-option').forEach(option => {
+                    option.addEventListener('click', function() {
+                        console.log("Export format selected:", this.dataset.format);
+                        document.querySelectorAll('.format-option').forEach(o => o.classList.remove('selected'));
+                        this.classList.add('selected');
+                        selectedExportFormat = this.dataset.format;
+                    });
+                });
+                
+                // Export button
+                exportBtn.addEventListener('click', function() {
+                    console.log("Export button clicked, format:", selectedExportFormat);
+                    exportAnnotations();
+                });
+                
+                // Delete selected annotation
+                deleteSelectedBtn.addEventListener('click', function() {
+                    console.log("Delete selected button clicked, selected index:", selectedAnnotationIdx);
+                    if (selectedAnnotationIdx >= 0 && annotations.annotations) {
+                        annotations.annotations.splice(selectedAnnotationIdx, 1);
+                        selectedAnnotationIdx = -1;
+                        drawCanvas();
+                        updateAnnotationsList();
+                    }
+                });
+                
+                // Add annotation button
+                addAnnotationBtn.addEventListener('click', function() {
+                    console.log("Add annotation button clicked");
+                    // For now, just create a simple bounding box in the center of the view
+                    const imageWidth = originalImage.width;
+                    const imageHeight = originalImage.height;
+                    
+                    // Check if categories exist, if not, create a default one
+                    if (!annotations.categories || annotations.categories.length === 0) {
+                        annotations.categories = [
+                            {
+                                "id": 1,
+                                "name": "object",
+                                "supercategory": "object"
+                            }
+                        ];
+                    }
+                    
+                    // Create a new annotation
+                    const newAnnotation = {
+                        "id": annotations.annotations ? annotations.annotations.length + 1 : 1,
+                        "image_id": 1,
+                        "category_id": annotations.categories[0].id,
+                        "bbox": [imageWidth * 0.3, imageHeight * 0.3, imageWidth * 0.4, imageHeight * 0.4], // [x, y, width, height]
+                        "area": imageWidth * 0.4 * imageHeight * 0.4,
+                        "segmentation": [],
+                        "iscrowd": 0,
+                        "score": 1.0
+                    };
+                    
+                    if (!annotations.annotations) {
+                        annotations.annotations = [];
+                    }
+                    
+                    annotations.annotations.push(newAnnotation);
+                    selectedAnnotationIdx = annotations.annotations.length - 1;
+                    drawCanvas();
+                    updateAnnotationsList();
+                });
+            }
+            
+            // Resize canvas to fit container
+            function resizeCanvas() {
+                const container = canvas.parentElement;
+                canvas.width = container.clientWidth;
+                canvas.height = container.clientHeight;
+                drawCanvas();
+            }
+            
+            // Fit image to canvas
+            function fitImageToCanvas() {
+                const containerWidth = canvas.width;
+                const containerHeight = canvas.height;
+                const imageWidth = originalImage.width;
+                const imageHeight = originalImage.height;
+                
+                // Calculate the scale to fit the image within the canvas
+                const scaleX = containerWidth / imageWidth;
+                const scaleY = containerHeight / imageHeight;
+                scale = Math.min(scaleX, scaleY) * 0.9; // 90% of the container size
+                
+                // Center the image
+                offsetX = (containerWidth - imageWidth * scale) / 2;
+                offsetY = (containerHeight - imageHeight * scale) / 2;
+                
+                updateZoomLevel();
+            }
+            
+            // Update the zoom level display
+            function updateZoomLevel() {
+                document.getElementById('zoom-level').textContent = Math.round(scale * 100) + '%';
+            }
+            
+            // Draw canvas with image and annotations
+            function drawCanvas() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                
+                // Draw background
+                ctx.fillStyle = '#f1f1f1';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                
+                // Draw image
+                ctx.save();
+                ctx.translate(offsetX, offsetY);
+                ctx.scale(scale, scale);
+                ctx.drawImage(originalImage, 0, 0);
+                
+                // Draw annotations
+                if (annotations && annotations.annotations && annotations.annotations.length > 0) {
+                    annotations.annotations.forEach((annotation, idx) => {
+                        const isSelected = idx === selectedAnnotationIdx;
+                        drawAnnotation(annotation, isSelected);
+                    });
+                }
+                
+                ctx.restore();
+            }
+            
+            // Draw a single annotation
+            function drawAnnotation(annotation, isSelected) {
+                if (!annotation || !annotation.bbox) {
+                    console.error("Invalid annotation:", annotation);
+                    return;
+                }
+                
+                const [x, y, w, h] = annotation.bbox;
+                
+                // Set styles based on selection state
+                ctx.lineWidth = isSelected ? 3 : 2;
+                ctx.strokeStyle = isSelected ? '#ff9500' : '#4361ee';
+                
+                // Draw bounding box
+                ctx.strokeRect(x, y, w, h);
+                
+                // Draw label
+                const categoryId = annotation.category_id;
+                let category = null;
+                
+                if (annotations.categories) {
+                    category = annotations.categories.find(cat => cat.id === categoryId);
+                }
+                
+                // If category not found, draw a default label
+                if (category) {
+                    ctx.fillStyle = isSelected ? 'rgba(255, 149, 0, 0.8)' : 'rgba(67, 97, 238, 0.8)';
+                    ctx.fillRect(x, y - 25, 150, 25);
+                    ctx.fillStyle = 'white';
+                    ctx.font = '14px Inter, sans-serif';
+                    ctx.fillText(`${category.name} (${Math.round(annotation.score * 100)}%)`, x + 5, y - 8);
+                } else {
+                    ctx.fillStyle = isSelected ? 'rgba(255, 149, 0, 0.8)' : 'rgba(67, 97, 238, 0.8)';
+                    ctx.fillRect(x, y - 25, 150, 25);
+                    ctx.fillStyle = 'white';
+                    ctx.font = '14px Inter, sans-serif';
+                    ctx.fillText(`Object (${Math.round(annotation.score * 100)}%)`, x + 5, y - 8);
+                }
+                
+                // Draw mask if available
+                if (annotation.segmentation && annotation.segmentation.length > 0) {
+                    ctx.fillStyle = isSelected ? 'rgba(255, 149, 0, 0.3)' : 'rgba(67, 97, 238, 0.3)';
+                    
+                    annotation.segmentation.forEach(segment => {
+                        if (segment && segment.length >= 6) { // At least 3 points
+                            ctx.beginPath();
+                            ctx.moveTo(segment[0], segment[1]);
+                            
+                            for (let i = 2; i < segment.length; i += 2) {
+                                ctx.lineTo(segment[i], segment[i + 1]);
+                            }
+                            
+                            ctx.closePath();
+                            ctx.fill();
+                            ctx.stroke();
+                        }
+                    });
+                }
+            }
+            
+            // Update the annotations list sidebar
+            function updateAnnotationsList() {
+                annotationsList.innerHTML = '';
+                
+                if (!annotations || !annotations.annotations) {
+                    annotationCount.textContent = '0 Objects';
+                    return;
+                }
+                
+                // Update count
+                annotationCount.textContent = `${annotations.annotations.length} Objects`;
+                
+                // Create list items
+                annotations.annotations.forEach((annotation, idx) => {
+                    if (!annotation) return;
+                    
+                    const categoryId = annotation.category_id;
+                    let category = null;
+                    let categoryName = "Object";
+                    
+                    if (annotations.categories) {
+                        category = annotations.categories.find(cat => cat.id === categoryId);
+                        if (category) {
+                            categoryName = category.name;
+                        }
+                    }
+                    
+                    const item = document.createElement('div');
+                    item.className = `annotation-item${idx === selectedAnnotationIdx ? ' selected' : ''}`;
+                    item.innerHTML = `
+                        <div class="annotation-class">${categoryName}</div>
+                        <div class="annotation-score">Confidence: ${Math.round(annotation.score * 100)}%</div>
+                        <div class="annotation-bbox">Box: ${Math.round(annotation.bbox[0])}, ${Math.round(annotation.bbox[1])}, ${Math.round(annotation.bbox[2])}, ${Math.round(annotation.bbox[3])}</div>
+                        <div class="annotation-controls">
+                            <button class="btn-edit"><i class="fas fa-edit"></i> Edit</button>
+                            <button class="btn-delete"><i class="fas fa-trash"></i></button>
+                        </div>
+                    `;
+                    
+                    // Add event listeners
+                    item.addEventListener('click', function() {
+                        console.log("Annotation item clicked, index:", idx);
+                        selectedAnnotationIdx = idx;
+                        updateAnnotationsList();
+                        drawCanvas();
+                    });
+                    
+                    const deleteBtn = item.querySelector('.btn-delete');
+                    if (deleteBtn) {
+                        deleteBtn.addEventListener('click', function(e) {
+                            console.log("Delete button clicked for annotation at index:", idx);
+                            e.stopPropagation();
+                            annotations.annotations.splice(idx, 1);
+                            if (selectedAnnotationIdx === idx) {
+                                selectedAnnotationIdx = -1;
+                            } else if (selectedAnnotationIdx > idx) {
+                                selectedAnnotationIdx--;
+                            }
+                            updateAnnotationsList();
+                            drawCanvas();
+                        });
+                    }
+                    
+                    annotationsList.appendChild(item);
+                });
+            }
+            
+            // Handle mouse events
+            function handleMouseDown(e) {
+                const rect = canvas.getBoundingClientRect();
+                lastX = e.clientX - rect.left;
+                lastY = e.clientY - rect.top;
+                isDragging = true;
+                
+                // Check if we're clicking on an annotation
+                const worldX = (lastX - offsetX) / scale;
+                const worldY = (lastY - offsetY) / scale;
+                
+                if (annotations && annotations.annotations) {
+                    // Find if the click is inside any bounding box
+                    const clickedAnnotationIdx = annotations.annotations.findIndex(annotation => {
+                        if (!annotation || !annotation.bbox) return false;
+                        const [x, y, w, h] = annotation.bbox;
+                        return worldX >= x && worldX <= x + w && worldY >= y && worldY <= y + h;
+                    });
+                    
+                    if (clickedAnnotationIdx !== -1) {
+                        console.log("Clicked on annotation at index:", clickedAnnotationIdx);
+                        selectedAnnotationIdx = clickedAnnotationIdx;
+                        updateAnnotationsList();
+                        drawCanvas();
+                    }
+                }
+            }
+            
+            function handleMouseMove(e) {
+                if (!isDragging) return;
+                
+                const rect = canvas.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+                
+                // If using move tool
+                if (document.getElementById('tool-move').classList.contains('active')) {
+                    offsetX += (x - lastX);
+                    offsetY += (y - lastY);
+                    drawCanvas();
+                }
+                // If using box tool and an annotation is selected
+                else if (document.getElementById('tool-box').classList.contains('active') && selectedAnnotationIdx >= 0) {
+                    const deltaX = (x - lastX) / scale;
+                    const deltaY = (y - lastY) / scale;
+                    
+                    if (annotations && annotations.annotations && annotations.annotations[selectedAnnotationIdx]) {
+                        const bbox = annotations.annotations[selectedAnnotationIdx].bbox;
+                        bbox[0] += deltaX;
+                        bbox[1] += deltaY;
+                        drawCanvas();
+                    }
+                }
+                
+                lastX = x;
+                lastY = y;
+            }
+            
+            function handleMouseUp() {
+                isDragging = false;
+            }
+            
+            function handleWheel(e) {
+                e.preventDefault();
+                
+                const rect = canvas.getBoundingClientRect();
+                const mouseX = e.clientX - rect.left;
+                const mouseY = e.clientY - rect.top;
+                
+                // Calculate the world position of the mouse
+                const worldX = (mouseX - offsetX) / scale;
+                const worldY = (mouseY - offsetY) / scale;
+                
+                // Adjust scale by wheel delta
+                const zoomFactor = e.deltaY < 0 ? 1.1 : 0.9;
+                scale *= zoomFactor;
+                
+                // Limit scale
+                scale = Math.max(0.1, Math.min(scale, 5));
+                
+                // Adjust offset to zoom around mouse position
+                offsetX = mouseX - worldX * scale;
+                offsetY = mouseY - worldY * scale;
+                
+                updateZoomLevel();
+                drawCanvas();
+            }
+            
+            // Export annotations
+            function exportAnnotations() {
+                const format = selectedExportFormat;
+                console.log("Exporting annotations in format:", format);
+                const exportUrl = `{{ url_for('get_annotations', filename=filename) }}?format=${format}`;
+                console.log("Export URL:", exportUrl);
+                window.location.href = exportUrl;
+            }
+            
+            // Make sure the export section is visible by scrolling to it if needed
+            document.querySelector('.export-section').scrollIntoView({
+                behavior: 'smooth',
+                block: 'nearest'
+            });
+            
+            // Initialize
+            console.log("Initializing annotation editor...");
+            initCanvas();
+
+            // Make sure the export button goes to the export section
+            document.querySelector('a[href="#export-section"]').addEventListener('click', function(e) {
+                e.preventDefault();
+                document.getElementById('export-section').scrollIntoView({ 
+                    behavior: 'smooth', 
+                    block: 'start' 
+                });
+            });
+
+            // Fix for mobile devices to ensure content is scrollable
+            document.body.style.minHeight = '100vh';
+            document.body.style.overflowY = 'auto';
+        });
+    </script>
+</body>
+</html> 

@@ -14,6 +14,8 @@ import base64
 from threading import Thread
 import json
 import io
+import datetime
+import uuid
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
@@ -792,6 +794,353 @@ def handle_process_frame(data):
         import traceback
         logger.error(traceback.format_exc())
         emit('error', {'message': str(e)})
+
+def create_annotations(image_path, threshold=0.7, selected_classes=None):
+    """Create annotations in COCO format from image detections."""
+    # Load and preprocess image
+    image = cv2.imread(image_path)
+    image_height, image_width = image.shape[:2]
+    image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+    
+    # Convert to tensor and add batch dimension
+    image_tensor = F.to_tensor(image)
+    image_tensor = image_tensor.unsqueeze(0)
+
+    # Make prediction
+    with torch.no_grad():
+        predictions = model(image_tensor)
+
+    # Process predictions
+    boxes = predictions[0]['boxes'].cpu().numpy()
+    scores = predictions[0]['scores'].cpu().numpy()
+    labels = predictions[0]['labels'].cpu().numpy()
+    masks = predictions[0]['masks'].cpu().numpy()
+
+    # Filter predictions based on confidence and selected classes
+    if selected_classes:
+        selected_classes = [int(cls) for cls in selected_classes]
+        keep = (scores >= threshold) & np.isin(labels, selected_classes)
+    else:
+        # If no specific classes selected, use all valid classes (exclude N/A)
+        keep = (scores >= threshold) & np.isin(labels, VALID_CLASS_INDICES)
+    
+    boxes = boxes[keep]
+    scores = scores[keep]
+    labels = labels[keep]
+    masks = masks[keep]
+    
+    # Create COCO format annotations
+    coco_data = {
+        "info": {
+            "description": "Mask R-CNN Annotations",
+            "url": "",
+            "version": "1.0",
+            "year": datetime.datetime.now().year,
+            "contributor": "Mask R-CNN Web Interface",
+            "date_created": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        },
+        "licenses": [
+            {
+                "id": 1,
+                "name": "Unknown",
+                "url": ""
+            }
+        ],
+        "images": [
+            {
+                "id": 1,
+                "width": image_width,
+                "height": image_height,
+                "file_name": os.path.basename(image_path),
+                "license": 1,
+                "date_captured": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            }
+        ],
+        "categories": [],
+        "annotations": []
+    }
+    
+    # Add categories
+    category_map = {}
+    for idx, name in enumerate(COCO_CLASSES):
+        if name != 'N/A' and name != '__background__':
+            category_id = len(category_map) + 1
+            category_map[idx] = category_id
+            coco_data["categories"].append({
+                "id": category_id,
+                "name": name,
+                "supercategory": "object"
+            })
+    
+    # Add annotations
+    annotation_id = 1
+    for i, (box, label, score, mask) in enumerate(zip(boxes, labels, scores, masks)):
+        if COCO_CLASSES[label] == 'N/A':
+            continue
+        
+        # Process segmentation mask
+        binary_mask = (mask[0] > 0.5).astype(np.uint8)
+        
+        # Find contours in the binary mask
+        contours, _ = cv2.findContours(binary_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        
+        # Convert contours to COCO segmentation format
+        segmentation = []
+        for contour in contours:
+            if contour.size >= 6:  # Need at least 3 points (x,y pairs) for a valid polygon
+                # Flatten the contour and convert to float
+                contour = contour.flatten().astype(float).tolist()
+                segmentation.append(contour)
+        
+        # Calculate area
+        x1, y1, x2, y2 = box.astype(int)
+        area = int((x2 - x1) * (y2 - y1))
+        
+        # Create annotation
+        annotation = {
+            "id": annotation_id,
+            "image_id": 1,
+            "category_id": category_map[label],
+            "bbox": [float(x1), float(y1), float(x2 - x1), float(y2 - y1)],
+            "area": area,
+            "segmentation": segmentation,
+            "iscrowd": 0,
+            "score": float(score)
+        }
+        
+        coco_data["annotations"].append(annotation)
+        annotation_id += 1
+    
+    return coco_data
+
+def convert_annotations_to_pascal_voc(coco_data, output_dir):
+    """Convert COCO annotations to Pascal VOC format."""
+    image_data = coco_data["images"][0]
+    filename = image_data["file_name"]
+    width = image_data["width"]
+    height = image_data["height"]
+    
+    # Create root element
+    from xml.etree.ElementTree import Element, SubElement, tostring
+    from xml.dom import minidom
+    
+    root = Element('annotation')
+    
+    # Add basic image information
+    folder = SubElement(root, 'folder')
+    folder.text = 'images'
+    
+    file_elem = SubElement(root, 'filename')
+    file_elem.text = filename
+    
+    path = SubElement(root, 'path')
+    path.text = filename
+    
+    source = SubElement(root, 'source')
+    database = SubElement(source, 'database')
+    database.text = 'MaskRCNN'
+    
+    size = SubElement(root, 'size')
+    width_elem = SubElement(size, 'width')
+    width_elem.text = str(width)
+    height_elem = SubElement(size, 'height')
+    height_elem.text = str(height)
+    depth = SubElement(size, 'depth')
+    depth.text = '3'
+    
+    segmented = SubElement(root, 'segmented')
+    segmented.text = '1'
+    
+    # Add objects
+    categories = {cat["id"]: cat["name"] for cat in coco_data["categories"]}
+    
+    for annotation in coco_data["annotations"]:
+        obj = SubElement(root, 'object')
+        
+        name = SubElement(obj, 'name')
+        name.text = categories[annotation["category_id"]]
+        
+        pose = SubElement(obj, 'pose')
+        pose.text = 'Unspecified'
+        
+        truncated = SubElement(obj, 'truncated')
+        truncated.text = '0'
+        
+        difficult = SubElement(obj, 'difficult')
+        difficult.text = '0'
+        
+        bbox = annotation["bbox"]
+        x1, y1, w, h = bbox
+        
+        bndbox = SubElement(obj, 'bndbox')
+        xmin = SubElement(bndbox, 'xmin')
+        xmin.text = str(int(x1))
+        ymin = SubElement(bndbox, 'ymin')
+        ymin.text = str(int(y1))
+        xmax = SubElement(bndbox, 'xmax')
+        xmax.text = str(int(x1 + w))
+        ymax = SubElement(bndbox, 'ymax')
+        ymax.text = str(int(y1 + h))
+    
+    # Pretty-print the XML
+    xml_str = minidom.parseString(tostring(root)).toprettyxml(indent="  ")
+    
+    # Save the XML file
+    output_path = os.path.join(output_dir, os.path.splitext(filename)[0] + '.xml')
+    with open(output_path, 'w') as f:
+        f.write(xml_str)
+    
+    return output_path
+
+def convert_annotations_to_yolo(coco_data, output_dir):
+    """Convert COCO annotations to YOLO format."""
+    image_data = coco_data["images"][0]
+    filename = image_data["file_name"]
+    img_width = image_data["width"]
+    img_height = image_data["height"]
+    
+    # Get all categories
+    categories = {cat["id"]: cat["name"] for cat in coco_data["categories"]}
+    
+    # Create class mapping (YOLO uses integers)
+    class_mapping = {cat_id: idx for idx, cat_id in enumerate(categories.keys())}
+    
+    # Create YOLO annotation file
+    yolo_lines = []
+    
+    for annotation in coco_data["annotations"]:
+        category_id = annotation["category_id"]
+        yolo_class_id = class_mapping[category_id]
+        
+        # Get bounding box coordinates
+        bbox = annotation["bbox"]
+        x1, y1, w, h = bbox
+        
+        # Convert to YOLO format (center_x, center_y, width, height) - normalized
+        center_x = (x1 + w/2) / img_width
+        center_y = (y1 + h/2) / img_height
+        norm_width = w / img_width
+        norm_height = h / img_height
+        
+        # Add to YOLO file
+        yolo_lines.append(f"{yolo_class_id} {center_x:.6f} {center_y:.6f} {norm_width:.6f} {norm_height:.6f}")
+    
+    # Write YOLO annotation file
+    output_path = os.path.join(output_dir, os.path.splitext(filename)[0] + '.txt')
+    with open(output_path, 'w') as f:
+        f.write('\n'.join(yolo_lines))
+    
+    # Also create a classes.txt file with the class names
+    classes_file = os.path.join(output_dir, 'classes.txt')
+    with open(classes_file, 'w') as f:
+        for cat_id, idx in sorted(class_mapping.items(), key=lambda x: x[1]):
+            f.write(f"{categories[cat_id]}\n")
+    
+    return output_path
+
+@app.route('/annotations/<filename>', methods=['GET'])
+def get_annotations(filename):
+    """Generate and return annotations for the given file."""
+    format_type = request.args.get('format', 'coco')
+    threshold = float(request.args.get('threshold', 0.7))
+    
+    # Get the file path
+    file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+    
+    if not os.path.exists(file_path):
+        flash('File not found')
+        return redirect(url_for('index'))
+    
+    if not filename.lower().endswith(('.png', '.jpg', '.jpeg')):
+        flash('Annotations are only supported for images')
+        return redirect(url_for('index'))
+    
+    # Create annotations directory if it doesn't exist
+    annotations_dir = os.path.join(static_dir, 'annotations')
+    os.makedirs(annotations_dir, exist_ok=True)
+    
+    # Generate COCO annotations
+    coco_data = create_annotations(file_path, threshold)
+    
+    if format_type == 'coco':
+        # Save COCO JSON
+        output_file = os.path.join(annotations_dir, f"{os.path.splitext(filename)[0]}_coco.json")
+        with open(output_file, 'w') as f:
+            json.dump(coco_data, f, indent=2)
+        
+        return send_from_directory(os.path.dirname(output_file), os.path.basename(output_file), as_attachment=True)
+    
+    elif format_type == 'pascal_voc':
+        # Convert to Pascal VOC and save
+        output_file = convert_annotations_to_pascal_voc(coco_data, annotations_dir)
+        return send_from_directory(os.path.dirname(output_file), os.path.basename(output_file), as_attachment=True)
+    
+    elif format_type == 'yolo':
+        # Convert to YOLO format and save
+        output_file = convert_annotations_to_yolo(coco_data, annotations_dir)
+        
+        # Create a zip file with the annotation and classes.txt
+        import zipfile
+        classes_file = os.path.join(annotations_dir, 'classes.txt')
+        zip_filename = f"{os.path.splitext(filename)[0]}_yolo.zip"
+        zip_path = os.path.join(annotations_dir, zip_filename)
+        
+        with zipfile.ZipFile(zip_path, 'w') as zipf:
+            zipf.write(output_file, arcname=os.path.basename(output_file))
+            zipf.write(classes_file, arcname='classes.txt')
+        
+        return send_from_directory(os.path.dirname(zip_path), os.path.basename(zip_path), as_attachment=True)
+    
+    else:
+        flash('Invalid annotation format')
+        return redirect(url_for('index'))
+
+@app.route('/annotation_editor/<filename>')
+def annotation_editor(filename):
+    """Render the annotation editor page."""
+    file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+    
+    if not os.path.exists(file_path):
+        flash('File not found')
+        return redirect(url_for('index'))
+    
+    if not filename.lower().endswith(('.png', '.jpg', '.jpeg')):
+        flash('Annotation editor is only supported for images')
+        return redirect(url_for('index'))
+    
+    # Generate annotations for the editor
+    threshold = float(request.args.get('threshold', 0.7))
+    coco_data = create_annotations(file_path, threshold)
+    
+    return render_template(
+        'annotation_editor.html',
+        filename=filename,
+        annotations=json.dumps(coco_data),
+        class_data=[(idx, name) for idx, name in enumerate(COCO_CLASSES) 
+                   if name != 'N/A' and name != '__background__']
+    )
+
+@app.route('/save_annotations', methods=['POST'])
+def save_annotations():
+    """Save modified annotations."""
+    data = request.json
+    
+    annotations_dir = os.path.join(static_dir, 'annotations')
+    os.makedirs(annotations_dir, exist_ok=True)
+    
+    # Save the modified annotations
+    filename = data.get('filename')
+    annotations = data.get('annotations')
+    format_type = data.get('format', 'coco')
+    
+    if not filename or not annotations:
+        return jsonify({'success': False, 'error': 'Missing required data'})
+    
+    output_file = os.path.join(annotations_dir, f"{os.path.splitext(filename)[0]}_{format_type}.json")
+    with open(output_file, 'w') as f:
+        json.dump(annotations, f, indent=2)
+    
+    return jsonify({'success': True, 'file': os.path.basename(output_file)})
 
 if __name__ == '__main__':
     socketio.run(app, debug=True) 
