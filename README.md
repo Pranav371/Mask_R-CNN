@@ -67,6 +67,61 @@ run.bat
 http://localhost:5000
 ```
 
+## Instructions for Mac and Linux Users
+
+While the project provides .bat files for Windows users, Mac and Linux users can follow these steps to install and run the application:
+
+### Installation
+
+1. Create a virtual environment (recommended):
+```bash
+# Using venv
+python3 -m venv venv
+source venv/bin/activate  # On Linux/Mac
+
+# Or using conda
+conda create -n maskrcnn python=3.8
+conda activate maskrcnn
+```
+
+2. Install the required dependencies:
+```bash
+pip3 install -r requirements.txt
+```
+
+### Running the Application
+
+1. Start the Flask server:
+```bash
+# Standard CPU version
+python3 app.py
+
+# GPU-accelerated version (if you have a compatible NVIDIA GPU)
+python3 app_gpu.py
+```
+
+2. Open your web browser and navigate to:
+```
+http://localhost:5000
+```
+
+### GPU Acceleration on Mac/Linux
+
+For GPU acceleration on Linux:
+1. Ensure you have CUDA and cuDNN properly installed
+2. Install PyTorch with CUDA support:
+```bash
+pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
+```
+
+For Mac users with Apple Silicon (M1/M2/M3):
+1. PyTorch now supports GPU acceleration on Apple Silicon
+2. Install the appropriate version with MPS (Metal Performance Shaders) support:
+```bash
+pip3 install torch torchvision torchaudio
+```
+3. The code will automatically use MPS if available when running on Apple Silicon
+
 ## Project Structure
 
 ```
