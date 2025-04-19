@@ -119,6 +119,24 @@ This application uses Mask R-CNN with a ResNet-50-FPN backbone, pre-trained on t
 - The processing happens on the server, so performance depends on your hardware
 - For optimal performance, a GPU with CUDA support is recommended for faster inference
 
+## GPU Acceleration
+
+For faster processing and improved performance, this application supports GPU acceleration using CUDA. Using a GPU can significantly reduce processing times, especially for videos and real-time camera detection.
+
+**To use the GPU-accelerated version:**
+
+1. Ensure you have a compatible NVIDIA GPU (RTX 3050 or better recommended)
+2. Follow the detailed setup and usage instructions in the [GPU README](README_GPU.md)
+3. Run the application using the `run_gpu.bat` script instead of the standard one
+
+The GPU version includes:
+- Significantly faster processing times
+- Real-time performance metrics 
+- Detailed information about GPU usage
+- Visual indicators showing GPU utilization
+
+For complete instructions, requirements, and troubleshooting for GPU acceleration, please refer to [README_GPU.md](README_GPU.md).
+
 ## License
 
 This project is licensed under the MIT License - see the LICENSE file for details. 
