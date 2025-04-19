@@ -420,6 +420,45 @@
                 margin-left: 1.75rem;
             }
         }
+        
+        .gpu-badge {
+            display: inline-flex;
+            align-items: center;
+            margin-top: 1rem;
+            padding: 0.5rem 1.25rem;
+            background: linear-gradient(90deg, #ff9500, #ff3800);
+            color: white;
+            font-weight: 600;
+            border-radius: 30px;
+            box-shadow: 0 5px 15px rgba(255, 120, 0, 0.3);
+            animation: pulse 2s infinite;
+        }
+        
+        .gpu-badge i {
+            margin-right: 8px;
+            animation: bolt 1.5s infinite;
+        }
+        
+        @keyframes pulse {
+            0% {
+                box-shadow: 0 5px 15px rgba(255, 120, 0, 0.3);
+            }
+            50% {
+                box-shadow: 0 5px 20px rgba(255, 120, 0, 0.6);
+            }
+            100% {
+                box-shadow: 0 5px 15px rgba(255, 120, 0, 0.3);
+            }
+        }
+        
+        @keyframes bolt {
+            0%, 100% {
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(1.2);
+            }
+        }
     </style>
 </head>
 <body>
@@ -427,6 +466,11 @@
         <div class="header">
             <h1>Mask R-CNN Results</h1>
             <p class="lead">View your processed image or video with object segmentation</p>
+            {% if gpu_metrics and 'cuda' in gpu_metrics.device %}
+            <div class="gpu-badge">
+                <i class="fas fa-bolt"></i> GPU Accelerated
+            </div>
+            {% endif %}
         </div>
 
         <div class="card mb-4">
@@ -603,6 +647,45 @@
                     </div>
                     {% endif %}
                 </div>
+                
+                {% if gpu_metrics %}
+                <div class="result-info-container mt-4">
+                    <h4><i class="fas fa-microchip me-2"></i>GPU Performance Metrics</h4>
+                    <div class="result-info-item">
+                        <div class="result-info-label">
+                            <i class="fas fa-server"></i> Device Used
+                        </div>
+                        <div class="result-info-value">{{ gpu_metrics.device }}</div>
+                    </div>
+                    {% if file_type == 'image' %}
+                    <div class="result-info-item">
+                        <div class="result-info-label">
+                            <i class="fas fa-tachometer-alt"></i> Inference Time
+                        </div>
+                        <div class="result-info-value">{{ gpu_metrics.inference_time }} ms</div>
+                    </div>
+                    <div class="result-info-item">
+                        <div class="result-info-label">
+                            <i class="fas fa-chart-line"></i> Inference Speed
+                        </div>
+                        <div class="result-info-value">{{ gpu_metrics.fps }} FPS</div>
+                    </div>
+                    {% else %}
+                    <div class="result-info-item">
+                        <div class="result-info-label">
+                            <i class="fas fa-clock"></i> Total Processing Time
+                        </div>
+                        <div class="result-info-value">{{ gpu_metrics.total_time }} seconds</div>
+                    </div>
+                    <div class="result-info-item">
+                        <div class="result-info-label">
+                            <i class="fas fa-chart-line"></i> Average Processing Speed
+                        </div>
+                        <div class="result-info-value">{{ gpu_metrics.fps }} FPS</div>
+                    </div>
+                    {% endif %}
+                </div>
+                {% endif %}
             </div>
         </div>
     </div>
