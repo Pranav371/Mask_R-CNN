@@ -455,6 +455,11 @@
         <div class="header">
             <h1>Mask R-CNN Instance Segmentation</h1>
             <p class="lead">Upload an image or video to detect and segment objects with advanced AI technology</p>
+            <div class="mt-3">
+                <a href="{{ url_for('camera') }}" class="btn btn-primary">
+                    <i class="fas fa-video me-2"></i>Try Live Camera Detection
+                </a>
+            </div>
         </div>
 
         {% with messages = get_flashed_messages() %}

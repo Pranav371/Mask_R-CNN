@@ -7,8 +7,13 @@ import torchvision
 import logging
 import subprocess
 from torchvision.transforms import functional as F
-from flask import Flask, render_template, request, redirect, url_for, flash, send_from_directory, Response
+from flask import Flask, render_template, request, redirect, url_for, flash, send_from_directory, Response, jsonify
 from werkzeug.utils import secure_filename
+from flask_socketio import SocketIO, emit
+import base64
+from threading import Thread
+import json
+import io
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
@@ -23,6 +28,9 @@ app.config['UPLOAD_FOLDER'] = os.path.join(static_dir, 'uploads')
 app.config['RESULT_FOLDER'] = os.path.join(static_dir, 'results')
 app.config['ALLOWED_EXTENSIONS'] = {'png', 'jpg', 'jpeg', 'mp4', 'avi', 'mov'}
 app.secret_key = 'mask_rcnn_segmentation'
+
+# Initialize SocketIO
+socketio = SocketIO(app, cors_allowed_origins="*")
 
 # Create necessary directories
 os.makedirs(static_dir, exist_ok=True)
@@ -434,6 +442,84 @@ def process_video(video_path, threshold=0.7, selected_classes=None):
         logger.error(f"Error processing video: {str(e)}")
         return None
 
+def process_frame(frame, threshold=0.7, selected_classes=None):
+    """Process a single frame with Mask R-CNN for real-time processing."""
+    # Convert BGR to RGB (OpenCV loads images in BGR, but PyTorch expects RGB)
+    frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+    
+    # Convert to tensor and add batch dimension
+    frame_tensor = F.to_tensor(frame_rgb)
+    frame_tensor = frame_tensor.unsqueeze(0)
+
+    # Make prediction
+    with torch.no_grad():
+        predictions = model(frame_tensor)
+
+    # Process predictions
+    boxes = predictions[0]['boxes'].cpu().numpy()
+    scores = predictions[0]['scores'].cpu().numpy()
+    labels = predictions[0]['labels'].cpu().numpy()
+    masks = predictions[0]['masks'].cpu().numpy()
+
+    # Filter predictions based on confidence and selected classes
+    if selected_classes:
+        selected_classes = [int(cls) for cls in selected_classes]
+        keep = (scores >= threshold) & np.isin(labels, selected_classes)
+    else:
+        # If no specific classes selected, use all valid classes (exclude N/A)
+        keep = (scores >= threshold) & np.isin(labels, VALID_CLASS_INDICES)
+    
+    boxes = boxes[keep]
+    scores = scores[keep]
+    labels = labels[keep]
+    masks = masks[keep]
+
+    # Visualization
+    output_frame = frame_rgb.copy()
+    
+    # Count detected objects
+    detected_objects = {}
+    
+    for i, (box, label, score, mask) in enumerate(zip(boxes, labels, scores, masks)):
+        # Skip N/A classes (shouldn't happen due to earlier filtering, but just in case)
+        if COCO_CLASSES[label] == 'N/A':
+            continue
+            
+        # Generate a random color for this instance
+        color = (np.random.randint(0,255), np.random.randint(0,255), np.random.randint(0,255))
+        
+        # Draw bounding box
+        cv2.rectangle(output_frame, 
+                    (int(box[0]), int(box[1])), 
+                    (int(box[2]), int(box[3])), 
+                    color, 2)
+        
+        # Draw mask
+        mask = mask[0]  # Remove channel dimension
+        mask = (mask > 0.5).astype(np.uint8)
+        colored_mask = np.zeros_like(output_frame)
+        colored_mask[:] = color
+        masked = cv2.bitwise_and(colored_mask, colored_mask, mask=mask)
+        output_frame = cv2.addWeighted(output_frame, 1, masked, 0.5, 0)
+        
+        # Draw label
+        class_name = COCO_CLASSES[label]
+        label_text = f"{class_name}: {score:.2f}"
+        cv2.putText(output_frame, label_text, 
+                (int(box[0]), int(box[1]-5)), 
+                cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
+        
+        # Count objects by class
+        if class_name in detected_objects:
+            detected_objects[class_name] += 1
+        else:
+            detected_objects[class_name] = 1
+
+    # Convert back to BGR for OpenCV display
+    output_frame = cv2.cvtColor(output_frame, cv2.COLOR_RGB2BGR)
+    
+    return output_frame, detected_objects
+
 @app.route('/')
 def index():
     # Pass the valid classes to the template
@@ -599,5 +685,113 @@ def result_file(filename):
     # Default behavior for other file types
     return send_from_directory(app.config['RESULT_FOLDER'], filename)
 
+@app.route('/camera')
+def camera():
+    # Pass the valid classes to the template
+    class_data = [(idx, name) for idx, name in enumerate(COCO_CLASSES) 
+                 if name != 'N/A' and name != '__background__']
+    return render_template('camera.html', class_data=class_data)
+
+@socketio.on('connect')
+def handle_connect():
+    print('Client connected')
+
+@socketio.on('disconnect')
+def handle_disconnect():
+    print('Client disconnected')
+
+@socketio.on('process_frame')
+def handle_process_frame(data):
+    try:
+        # Get the threshold and selected classes from the data
+        threshold = float(data.get('threshold', 0.7))
+        selected_classes = data.get('classes', None)
+        
+        # Ensure selected_classes is properly formatted for processing
+        if selected_classes and len(selected_classes) > 0:
+            # Make sure all class values are integers
+            try:
+                selected_classes = [int(cls) for cls in selected_classes if cls and cls.isdigit()]
+                # Filter out any invalid class indices
+                selected_classes = [cls for cls in selected_classes if cls < len(COCO_CLASSES) and COCO_CLASSES[cls] != 'N/A']
+                if not selected_classes:  # If none valid after filtering, use all valid classes
+                    selected_classes = VALID_CLASS_INDICES
+            except (ValueError, TypeError) as e:
+                logger.error(f"Error processing class indices: {str(e)}")
+                selected_classes = VALID_CLASS_INDICES  # Fall back to all valid classes
+        else:
+            selected_classes = VALID_CLASS_INDICES  # Use all valid classes if none provided
+        
+        # Decode the base64 image
+        image_data = data.get('image', '')
+        if not image_data:
+            raise ValueError("No image data received")
+            
+        # Handle potential formats: with or without the data URL prefix
+        if ',' in image_data:
+            image_data = image_data.split(',')[1]
+        
+        try:
+            # First attempt with regular decoding
+            image_bytes = base64.b64decode(image_data)
+            nparr = np.frombuffer(image_bytes, np.uint8)
+            frame = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+        except cv2.error as e:
+            logger.warning(f"Memory error during decoding, trying lower quality: {str(e)}")
+            # Fallback 1: Try to decode at reduced size
+            try:
+                # Decode at reduced size using IMREAD_REDUCED_COLOR_2 flag (half resolution)
+                frame = cv2.imdecode(nparr, cv2.IMREAD_REDUCED_COLOR_2)
+            except Exception:
+                # Fallback 2: Skip this frame entirely
+                logger.error("Failed to decode image even at reduced size, skipping frame")
+                emit('error', {'message': "Image decoding failed. Try lowering camera resolution or image quality."})
+                return
+        
+        if frame is None:
+            raise ValueError("Failed to decode image")
+        
+        # Resize frame if it's too large (memory optimization)
+        max_dim = 480  # Maximum dimension for processing
+        height, width = frame.shape[:2]
+        if height > max_dim or width > max_dim:
+            # Calculate new dimensions while maintaining aspect ratio
+            if height > width:
+                new_height = max_dim
+                new_width = int(width * (max_dim / height))
+            else:
+                new_width = max_dim
+                new_height = int(height * (max_dim / width))
+                
+            # Resize the frame
+            frame = cv2.resize(frame, (new_width, new_height), interpolation=cv2.INTER_AREA)
+            logger.debug(f"Resized frame from {width}x{height} to {new_width}x{new_height}")
+        
+        try:
+            # Process the frame
+            processed_frame, detected_objects = process_frame(frame, threshold, selected_classes)
+            
+            # Convert the processed frame to base64 for sending back to client
+            _, buffer = cv2.imencode('.jpg', processed_frame, [cv2.IMWRITE_JPEG_QUALITY, 70])  # Lower quality (70 instead of 80)
+            processed_base64 = base64.b64encode(buffer).decode('utf-8')
+            
+            # Send the processed frame and detected objects back to the client
+            emit('processed_frame', {
+                'image': processed_base64,
+                'detected_objects': detected_objects
+            })
+        except cv2.error as e:
+            if "Failed to allocate" in str(e) or "Insufficient memory" in str(e):
+                logger.error(f"Memory allocation error during processing: {str(e)}")
+                emit('error', {'message': "Not enough memory to process this frame. Try reducing resolution or quality."})
+            else:
+                raise  # Re-raise if it's a different OpenCV error
+    except Exception as e:
+        logger.error(f"Error processing frame: {str(e)}")
+        # Include traceback for more detailed debugging
+        import traceback
+        logger.error(traceback.format_exc())
+        emit('error', {'message': str(e)})
+
 if __name__ == '__main__':
-    app.run(debug=True) 
+    socketio.run(app, debug=True) 
