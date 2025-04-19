@@ -448,6 +448,61 @@
         .about-card p:last-child {
             margin-bottom: 0;
         }
+        
+        .category-selector {
+            border: 1px solid rgba(0,0,0,0.1);
+            border-radius: var(--border-radius);
+            padding: 1rem;
+            background-color: white;
+        }
+        
+        .category-tabs {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            border-bottom: 1px solid rgba(0,0,0,0.1);
+            padding-bottom: 1rem;
+        }
+        
+        .category-tab {
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            background-color: #f1f3f5;
+            border: none;
+            font-weight: 500;
+            font-size: 0.9rem;
+            transition: var(--transition);
+            cursor: pointer;
+        }
+        
+        .category-tab:hover {
+            background-color: var(--light-accent);
+            color: var(--primary-color);
+        }
+        
+        .category-tab.active {
+            background: linear-gradient(90deg, var(--primary-color), var(--accent-color));
+            color: white;
+            box-shadow: 0 3px 10px rgba(67, 97, 238, 0.3);
+        }
+        
+        .category-group {
+            display: none;
+            padding-top: 1rem;
+        }
+        
+        .category-group.active {
+            display: block;
+        }
+        
+        .form-check-label {
+            font-size: 0.95rem;
+        }
+        
+        .form-check-input:checked {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+        }
     </style>
 </head>
 <body>
@@ -504,163 +559,173 @@
                         </div>
                     </div>
                     
-                    <div class="mb-4 class-filters">
-                        <label for="selected_classes" class="form-label d-flex justify-content-between align-items-center">
-                            <span>Filter Classes to Detect:</span>
-                            <span>
-                                <a href="#" class="class-selection-toggle me-2" id="select-all">Select All</a> | 
-                                <a href="#" class="class-selection-toggle me-2" id="deselect-all">Deselect All</a> |
-                                <a href="#" class="class-selection-toggle" id="select-common">Common Objects</a>
-                            </span>
-                        </label>
+                    <div class="form-group mb-4">
+                        <label for="selected_classes" class="form-label">Select Object Classes to Detect (optional)</label>
                         
-                        <div class="category-filters">
-                            <button type="button" class="category-btn active" data-category="all">All Categories</button>
-                            <button type="button" class="category-btn" data-category="people-animals">People & Animals</button>
-                            <button type="button" class="category-btn" data-category="vehicles">Vehicles</button>
-                            <button type="button" class="category-btn" data-category="household">Household</button>
-                            <button type="button" class="category-btn" data-category="food">Food & Drinks</button>
-                            <button type="button" class="category-btn" data-category="electronics">Electronics</button>
-                            <button type="button" class="category-btn" data-category="outdoor">Outdoor</button>
-                            <button type="button" class="category-btn" data-category="accessories">Accessories</button>
+                        <div class="category-selector mb-3">
+                            <div class="category-tabs">
+                                <button type="button" class="category-tab active" data-category="all">All Categories</button>
+                                <button type="button" class="category-tab" data-category="people">People</button>
+                                <button type="button" class="category-tab" data-category="animals">Animals</button>
+                                <button type="button" class="category-tab" data-category="vehicles">Vehicles</button>
+                                <button type="button" class="category-tab" data-category="food">Food & Drink</button>
+                                <button type="button" class="category-tab" data-category="furniture">Furniture & Household</button>
+                                <button type="button" class="category-tab" data-category="electronics">Electronics</button>
+                                <button type="button" class="category-tab" data-category="sports">Sports & Recreation</button>
+                                <button type="button" class="category-tab" data-category="other">Other Items</button>
+                            </div>
+                            
+                            <div class="category-groups mt-3">
+                                <!-- All Categories (shown by default) -->
+                                <div class="category-group active" id="all-group">
+                                    <div class="row">
+                                        {% for idx, name in class_data %}
+                                        <div class="col-md-4 col-sm-6 mb-2">
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="checkbox" name="selected_classes[]" value="{{ idx }}" id="class_{{ idx }}">
+                                                <label class="form-check-label" for="class_{{ idx }}">{{ name }}</label>
+                                            </div>
+                                        </div>
+                                        {% endfor %}
+                                    </div>
+                                    <div class="mt-3">
+                                        <button type="button" class="btn btn-sm btn-outline-primary" id="select-all">Select All</button>
+                                        <button type="button" class="btn btn-sm btn-outline-secondary" id="deselect-all">Deselect All</button>
+                                    </div>
+                                </div>
+                                
+                                <!-- People Group -->
+                                <div class="category-group" id="people-group">
+                                    <div class="row">
+                                        {% for idx, name in class_data %}
+                                        {% if name == 'person' %}
+                                        <div class="col-md-4 col-sm-6 mb-2">
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="checkbox" name="selected_classes[]" value="{{ idx }}" id="people_{{ idx }}">
+                                                <label class="form-check-label" for="people_{{ idx }}">{{ name }}</label>
+                                            </div>
+                                        </div>
+                                        {% endif %}
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                                
+                                <!-- Animals Group -->
+                                <div class="category-group" id="animals-group">
+                                    <div class="row">
+                                        {% for idx, name in class_data %}
+                                        {% if name in ['bird', 'cat', 'dog', 'horse', 'sheep', 'cow', 'elephant', 'bear', 'zebra', 'giraffe'] %}
+                                        <div class="col-md-4 col-sm-6 mb-2">
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="checkbox" name="selected_classes[]" value="{{ idx }}" id="animals_{{ idx }}">
+                                                <label class="form-check-label" for="animals_{{ idx }}">{{ name }}</label>
+                                            </div>
+                                        </div>
+                                        {% endif %}
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                                
+                                <!-- Vehicles Group -->
+                                <div class="category-group" id="vehicles-group">
+                                    <div class="row">
+                                        {% for idx, name in class_data %}
+                                        {% if name in ['bicycle', 'car', 'motorcycle', 'airplane', 'bus', 'train', 'truck', 'boat'] %}
+                                        <div class="col-md-4 col-sm-6 mb-2">
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="checkbox" name="selected_classes[]" value="{{ idx }}" id="vehicles_{{ idx }}">
+                                                <label class="form-check-label" for="vehicles_{{ idx }}">{{ name }}</label>
+                                            </div>
+                                        </div>
+                                        {% endif %}
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                                
+                                <!-- Food & Drink Group -->
+                                <div class="category-group" id="food-group">
+                                    <div class="row">
+                                        {% for idx, name in class_data %}
+                                        {% if name in ['banana', 'apple', 'sandwich', 'orange', 'broccoli', 'carrot', 'hot dog', 'pizza', 'donut', 'cake', 'bottle', 'wine glass', 'cup', 'fork', 'knife', 'spoon', 'bowl'] %}
+                                        <div class="col-md-4 col-sm-6 mb-2">
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="checkbox" name="selected_classes[]" value="{{ idx }}" id="food_{{ idx }}">
+                                                <label class="form-check-label" for="food_{{ idx }}">{{ name }}</label>
+                                            </div>
+                                        </div>
+                                        {% endif %}
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                                
+                                <!-- Furniture & Household Group -->
+                                <div class="category-group" id="furniture-group">
+                                    <div class="row">
+                                        {% for idx, name in class_data %}
+                                        {% if name in ['chair', 'couch', 'potted plant', 'bed', 'dining table', 'toilet', 'tv', 'microwave', 'oven', 'toaster', 'sink', 'refrigerator', 'vase', 'scissors'] %}
+                                        <div class="col-md-4 col-sm-6 mb-2">
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="checkbox" name="selected_classes[]" value="{{ idx }}" id="furniture_{{ idx }}">
+                                                <label class="form-check-label" for="furniture_{{ idx }}">{{ name }}</label>
+                                            </div>
+                                        </div>
+                                        {% endif %}
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                                
+                                <!-- Electronics Group -->
+                                <div class="category-group" id="electronics-group">
+                                    <div class="row">
+                                        {% for idx, name in class_data %}
+                                        {% if name in ['tv', 'laptop', 'mouse', 'remote', 'keyboard', 'cell phone', 'microwave', 'oven', 'toaster', 'refrigerator'] %}
+                                        <div class="col-md-4 col-sm-6 mb-2">
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="checkbox" name="selected_classes[]" value="{{ idx }}" id="electronics_{{ idx }}">
+                                                <label class="form-check-label" for="electronics_{{ idx }}">{{ name }}</label>
+                                            </div>
+                                        </div>
+                                        {% endif %}
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                                
+                                <!-- Sports & Recreation Group -->
+                                <div class="category-group" id="sports-group">
+                                    <div class="row">
+                                        {% for idx, name in class_data %}
+                                        {% if name in ['frisbee', 'skis', 'snowboard', 'sports ball', 'kite', 'baseball bat', 'baseball glove', 'skateboard', 'surfboard', 'tennis racket'] %}
+                                        <div class="col-md-4 col-sm-6 mb-2">
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="checkbox" name="selected_classes[]" value="{{ idx }}" id="sports_{{ idx }}">
+                                                <label class="form-check-label" for="sports_{{ idx }}">{{ name }}</label>
+                                            </div>
+                                        </div>
+                                        {% endif %}
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                                
+                                <!-- Other Items Group -->
+                                <div class="category-group" id="other-group">
+                                    <div class="row">
+                                        {% for idx, name in class_data %}
+                                        {% if name in ['traffic light', 'fire hydrant', 'stop sign', 'parking meter', 'bench', 'backpack', 'umbrella', 'handbag', 'tie', 'suitcase', 'book', 'clock', 'teddy bear', 'hair drier', 'toothbrush'] %}
+                                        <div class="col-md-4 col-sm-6 mb-2">
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="checkbox" name="selected_classes[]" value="{{ idx }}" id="other_{{ idx }}">
+                                                <label class="form-check-label" for="other_{{ idx }}">{{ name }}</label>
+                                            </div>
+                                        </div>
+                                        {% endif %}
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                         
-                        <select class="form-select" id="selected_classes" name="selected_classes[]" multiple="multiple">
-                            <!-- People & Animals -->
-                            <option value="1" selected data-category="people-animals">person</option>
-                            <option value="16" selected data-category="people-animals">bird</option>
-                            <option value="17" selected data-category="people-animals">cat</option>
-                            <option value="18" selected data-category="people-animals">dog</option>
-                            <option value="19" data-category="people-animals">horse</option>
-                            <option value="20" data-category="people-animals">sheep</option>
-                            <option value="21" data-category="people-animals">cow</option>
-                            <option value="22" data-category="people-animals">elephant</option>
-                            <option value="23" data-category="people-animals">bear</option>
-                            <option value="24" data-category="people-animals">zebra</option>
-                            <option value="25" data-category="people-animals">giraffe</option>
-                            
-                            <!-- Vehicles -->
-                            <option value="2" selected data-category="vehicles">bicycle</option>
-                            <option value="3" selected data-category="vehicles">car</option>
-                            <option value="4" selected data-category="vehicles">motorcycle</option>
-                            <option value="5" data-category="vehicles">airplane</option>
-                            <option value="6" data-category="vehicles">bus</option>
-                            <option value="7" data-category="vehicles">train</option>
-                            <option value="8" data-category="vehicles">truck</option>
-                            <option value="9" data-category="vehicles">boat</option>
-                            
-                            <!-- Household -->
-                            <option value="62" selected data-category="household">chair</option>
-                            <option value="63" selected data-category="household">couch</option>
-                            <option value="64" selected data-category="household">potted plant</option>
-                            <option value="65" data-category="household">bed</option>
-                            <option value="67" selected data-category="household">dining table</option>
-                            <option value="70" data-category="household">toilet</option>
-                            <option value="81" data-category="household">sink</option>
-                            <option value="82" data-category="household">refrigerator</option>
-                            <option value="84" data-category="household">book</option>
-                            <option value="85" data-category="household">clock</option>
-                            <option value="86" data-category="household">vase</option>
-                            <option value="87" data-category="household">scissors</option>
-                            <option value="88" data-category="household">teddy bear</option>
-                            <option value="89" data-category="household">hair drier</option>
-                            <option value="90" data-category="household">toothbrush</option>
-                            
-                            <!-- Food & Drinks -->
-                            <option value="44" selected data-category="food">bottle</option>
-                            <option value="46" selected data-category="food">wine glass</option>
-                            <option value="47" selected data-category="food">cup</option>
-                            <option value="48" data-category="food">fork</option>
-                            <option value="49" data-category="food">knife</option>
-                            <option value="50" data-category="food">spoon</option>
-                            <option value="51" data-category="food">bowl</option>
-                            <option value="52" data-category="food">banana</option>
-                            <option value="53" data-category="food">apple</option>
-                            <option value="54" data-category="food">sandwich</option>
-                            <option value="55" data-category="food">orange</option>
-                            <option value="56" data-category="food">broccoli</option>
-                            <option value="57" data-category="food">carrot</option>
-                            <option value="58" data-category="food">hot dog</option>
-                            <option value="59" data-category="food">pizza</option>
-                            <option value="60" data-category="food">donut</option>
-                            <option value="61" data-category="food">cake</option>
-                            
-                            <!-- Electronics -->
-                            <option value="72" selected data-category="electronics">tv</option>
-                            <option value="73" selected data-category="electronics">laptop</option>
-                            <option value="74" data-category="electronics">mouse</option>
-                            <option value="75" data-category="electronics">remote</option>
-                            <option value="76" selected data-category="electronics">keyboard</option>
-                            <option value="77" selected data-category="electronics">cell phone</option>
-                            <option value="78" data-category="electronics">microwave</option>
-                            <option value="79" data-category="electronics">oven</option>
-                            <option value="80" data-category="electronics">toaster</option>
-                            
-                            <!-- Outdoor -->
-                            <option value="10" data-category="outdoor">traffic light</option>
-                            <option value="11" data-category="outdoor">fire hydrant</option>
-                            <option value="13" data-category="outdoor">stop sign</option>
-                            <option value="14" data-category="outdoor">parking meter</option>
-                            <option value="15" data-category="outdoor">bench</option>
-                            
-                            <!-- Accessories & Sports -->
-                            <option value="27" selected data-category="accessories">backpack</option>
-                            <option value="28" data-category="accessories">umbrella</option>
-                            <option value="31" selected data-category="accessories">handbag</option>
-                            <option value="32" data-category="accessories">tie</option>
-                            <option value="33" data-category="accessories">suitcase</option>
-                            <option value="34" data-category="accessories">frisbee</option>
-                            <option value="35" data-category="accessories">skis</option>
-                            <option value="36" data-category="accessories">snowboard</option>
-                            <option value="37" data-category="accessories">sports ball</option>
-                            <option value="38" data-category="accessories">kite</option>
-                            <option value="39" data-category="accessories">baseball bat</option>
-                            <option value="40" data-category="accessories">baseball glove</option>
-                            <option value="41" data-category="accessories">skateboard</option>
-                            <option value="42" data-category="accessories">surfboard</option>
-                            <option value="43" data-category="accessories">tennis racket</option>
-                        </select>
-                        
-                        <div class="d-flex flex-wrap gap-2 mt-3">
-                            <div class="category-group">
-                                <button type="button" class="btn btn-sm btn-outline-primary category-select-all" data-category="people-animals">
-                                    <i class="fas fa-user me-1"></i>Select All People & Animals
-                                </button>
-                            </div>
-                            <div class="category-group">
-                                <button type="button" class="btn btn-sm btn-outline-primary category-select-all" data-category="vehicles">
-                                    <i class="fas fa-car me-1"></i>Select All Vehicles
-                                </button>
-                            </div>
-                            <div class="category-group">
-                                <button type="button" class="btn btn-sm btn-outline-primary category-select-all" data-category="household">
-                                    <i class="fas fa-couch me-1"></i>Select All Household
-                                </button>
-                            </div>
-                            <div class="category-group">
-                                <button type="button" class="btn btn-sm btn-outline-primary category-select-all" data-category="food">
-                                    <i class="fas fa-utensils me-1"></i>Select All Food
-                                </button>
-                            </div>
-                            <div class="category-group">
-                                <button type="button" class="btn btn-sm btn-outline-primary category-select-all" data-category="electronics">
-                                    <i class="fas fa-laptop me-1"></i>Select All Electronics
-                                </button>
-                            </div>
-                            <div class="category-group">
-                                <button type="button" class="btn btn-sm btn-outline-primary category-select-all" data-category="outdoor">
-                                    <i class="fas fa-traffic-light me-1"></i>Select All Outdoor
-                                </button>
-                            </div>
-                            <div class="category-group">
-                                <button type="button" class="btn btn-sm btn-outline-primary category-select-all" data-category="accessories">
-                                    <i class="fas fa-shopping-bag me-1"></i>Select All Accessories
-                                </button>
-                            </div>
-                        </div>
-                        
-                        <div class="form-text mt-3">
-                            <i class="fas fa-info-circle me-1"></i> Select which object classes you want to detect. Objects are grouped by category for easier selection.
+                        <div class="form-text">
+                            If none selected, all object classes will be detected in the image/video.
                         </div>
                     </div>
                     
@@ -885,6 +950,57 @@
             document.getElementById('file-name').textContent = files[0].name;
             document.getElementById('submit-btn').disabled = false;
         }
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            // Tab switching functionality
+            const categoryTabs = document.querySelectorAll('.category-tab');
+            const categoryGroups = document.querySelectorAll('.category-group');
+            
+            categoryTabs.forEach(tab => {
+                tab.addEventListener('click', function() {
+                    // Remove active class from all tabs and groups
+                    categoryTabs.forEach(t => t.classList.remove('active'));
+                    categoryGroups.forEach(g => g.classList.remove('active'));
+                    
+                    // Add active class to current tab
+                    this.classList.add('active');
+                    
+                    // Show corresponding group
+                    const category = this.dataset.category;
+                    document.getElementById(`${category}-group`).classList.add('active');
+                });
+            });
+            
+            // Select/Deselect All functionality
+            const selectAllBtn = document.getElementById('select-all');
+            const deselectAllBtn = document.getElementById('deselect-all');
+            
+            selectAllBtn.addEventListener('click', function() {
+                document.querySelectorAll('input[name="selected_classes[]"]').forEach(checkbox => {
+                    checkbox.checked = true;
+                });
+            });
+            
+            deselectAllBtn.addEventListener('click', function() {
+                document.querySelectorAll('input[name="selected_classes[]"]').forEach(checkbox => {
+                    checkbox.checked = false;
+                });
+            });
+            
+            // Synchronize checkbox states across tabs
+            const allCheckboxes = document.querySelectorAll('input[name="selected_classes[]"]');
+            allCheckboxes.forEach(checkbox => {
+                checkbox.addEventListener('change', function() {
+                    const value = this.value;
+                    const isChecked = this.checked;
+                    
+                    // Find all checkboxes with the same value and update them
+                    document.querySelectorAll(`input[name="selected_classes[]"][value="${value}"]`).forEach(cb => {
+                        cb.checked = isChecked;
+                    });
+                });
+            });
+        });
     </script>
 </body>
 </html> 

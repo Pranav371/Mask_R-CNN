@@ -7,155 +7,529 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
+        :root {
+            --primary-color: #4361ee;
+            --primary-hover: #3a56d4;
+            --secondary-color: #3f37c9;
+            --accent-color: #4895ef;
+            --light-accent: rgba(67, 97, 238, 0.1);
+            --text-color: #333;
+            --text-secondary: #6c757d;
+            --bg-color: #f8f9fa;
+            --card-bg: #ffffff;
+            --border-radius: 16px;
+            --box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
+            --transition: all 0.3s ease;
+        }
+        
         body {
-            font-family: Arial, sans-serif;
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 20px;
-            background-color: #f5f5f5;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            padding: 2rem 0;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            line-height: 1.6;
         }
-        h1 {
-            color: #333;
-            text-align: center;
-        }
+        
         .container {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 20px;
+            max-width: 1280px;
+            margin: 0 auto;
+            padding: 0 15px;
         }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 2.5rem;
+            position: relative;
+        }
+        
+        .header h1 {
+            font-weight: 700;
+            color: var(--primary-color);
+            margin-bottom: 0.75rem;
+            font-size: 2.5rem;
+        }
+        
+        .header p {
+            color: var(--text-secondary);
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        
+        .header:after {
+            content: '';
+            position: absolute;
+            bottom: -15px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 80px;
+            height: 4px;
+            background: linear-gradient(90deg, var(--primary-color), var(--accent-color));
+            border-radius: 2px;
+        }
+        
+        .card {
+            border: none;
+            border-radius: var(--border-radius);
+            box-shadow: var(--box-shadow);
+            margin-bottom: 2rem;
+            overflow: hidden;
+            transition: var(--transition);
+        }
+        
+        .card:hover {
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+            transform: translateY(-5px);
+        }
+        
+        .card-header {
+            background: linear-gradient(90deg, var(--primary-color), var(--accent-color));
+            color: white;
+            font-weight: 600;
+            padding: 1rem 1.5rem;
+            border-bottom: none;
+            font-size: 1.2rem;
+        }
+        
+        .card-header i {
+            margin-right: 8px;
+        }
+        
+        .card-body {
+            padding: 1.5rem;
+        }
+        
+        .btn {
+            font-weight: 600;
+            padding: 0.75rem 1.5rem;
+            border-radius: 30px;
+            transition: var(--transition);
+        }
+        
+        .btn-primary {
+            background: linear-gradient(90deg, var(--primary-color), var(--accent-color));
+            border: none;
+            box-shadow: 0 5px 15px rgba(67, 97, 238, 0.3);
+        }
+        
+        .btn-primary:hover {
+            background: linear-gradient(90deg, var(--accent-color), var(--primary-color));
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(67, 97, 238, 0.4);
+        }
+        
+        .btn:disabled {
+            opacity: 0.6;
+            transform: none !important;
+            box-shadow: none !important;
+        }
+        
+        /* Video Layout Styles */
         .video-container {
             display: flex;
-            gap: 20px;
-            justify-content: center;
             flex-wrap: wrap;
+            gap: 1.5rem;
+            margin-bottom: 2rem;
         }
-        .video-box {
-            border: 1px solid #ddd;
-            padding: 10px;
-            background-color: white;
-            border-radius: 5px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        
+        .video-card {
+            flex: 1;
+            min-width: 280px;
+            border-radius: var(--border-radius);
+            overflow: hidden;
+            box-shadow: var(--box-shadow);
+            background: white;
+            transition: var(--transition);
         }
-        .video-box h3 {
-            margin-top: 0;
+        
+        .video-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+        }
+        
+        .video-header {
+            background: linear-gradient(90deg, var(--primary-color), var(--accent-color));
+            color: white;
+            padding: 1rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        
+        .video-content {
+            padding: 1rem;
+            position: relative;
+        }
+        
+        canvas {
+            width: 100%;
+            height: auto;
+            border-radius: 8px;
+            background-color: #f1f3f5;
+            display: block;
+        }
+        
+        /* Controls Styles */
+        .controls-card {
+            border-radius: var(--border-radius);
+            overflow: hidden;
+            box-shadow: var(--box-shadow);
+            background: white;
+            margin-bottom: 2rem;
+        }
+        
+        .form-range {
+            height: 6px;
+        }
+        
+        .form-range::-webkit-slider-thumb {
+            background: var(--primary-color);
+        }
+        
+        .range-labels {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            margin-top: 0.5rem;
+        }
+        
+        /* Status Badge */
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.5rem 1rem;
+            border-radius: 30px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            margin-bottom: 1.5rem;
+        }
+        
+        .status-badge.connecting {
+            background-color: #ffeeba;
+            color: #856404;
+        }
+        
+        .status-badge.connected {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        
+        .status-badge.disconnected {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        
+        .status-badge.error {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        
+        .status-badge i {
+            margin-right: 8px;
+        }
+        
+        /* Detected Objects Panel */
+        .detection-panel {
+            border-radius: var(--border-radius);
+            overflow: hidden;
+            box-shadow: var(--box-shadow);
+            background: white;
+            transition: var(--transition);
+            margin-bottom: 2rem;
+        }
+        
+        .detection-items {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        .detection-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem 1.25rem;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+        }
+        
+        .detection-item:last-child {
+            border-bottom: none;
+        }
+        
+        .detection-label {
+            font-weight: 600;
+        }
+        
+        .detection-count {
+            background: linear-gradient(90deg, var(--accent-color), var(--primary-color));
+            color: white;
+            border-radius: 20px;
+            padding: 0.25rem 0.75rem;
+            font-weight: 600;
+            min-width: 40px;
             text-align: center;
         }
-        canvas {
-            width: 640px;
-            height: 480px;
-            background-color: #eee;
-            border-radius: 3px;
+        
+        /* Performance Metrics */
+        .performance-metrics {
+            background-color: rgba(67, 97, 238, 0.1);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-top: 1rem;
         }
-        .controls {
+        
+        .metric-item {
             display: flex;
-            flex-direction: column;
-            gap: 10px;
-            width: 100%;
-            max-width: 640px;
+            justify-content: space-between;
+            margin-bottom: 0.5rem;
         }
-        button {
-            padding: 10px 15px;
-            background-color: #4CAF50;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 16px;
+        
+        .metric-item:last-child {
+            margin-bottom: 0;
         }
-        button:hover {
-            background-color: #45a049;
+        
+        .metric-label {
+            font-weight: 600;
         }
-        button:disabled {
-            background-color: #cccccc;
-            cursor: not-allowed;
+        
+        .metric-value {
+            font-weight: 700;
+            color: var(--primary-color);
         }
+        
+        /* Classes Selection */
         .classes-container {
-            border: 1px solid #ddd;
-            padding: 15px;
-            background-color: white;
-            border-radius: 5px;
-            max-width: 640px;
-            width: 100%;
+            border-radius: var(--border-radius);
+            overflow: hidden;
+            box-shadow: var(--box-shadow);
+            background: white;
+            margin-bottom: 2rem;
         }
+        
         .classes-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-            gap: 10px;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 0.75rem;
+            padding: 1rem;
         }
+        
         .class-checkbox {
             display: flex;
             align-items: center;
-            gap: 5px;
-        }
-        #status {
-            padding: 10px;
+            padding: 0.5rem;
             border-radius: 4px;
-            text-align: center;
+            background-color: #f8f9fa;
+            transition: var(--transition);
+        }
+        
+        .class-checkbox:hover {
+            background-color: var(--light-accent);
+        }
+        
+        .class-checkbox input {
+            margin-right: 8px;
+        }
+        
+        .class-checkbox label {
+            font-size: 0.9rem;
+            margin-bottom: 0;
+            cursor: pointer;
+        }
+        
+        /* Responsive Adjustments */
+        @media (max-width: 768px) {
+            .video-container {
+                flex-direction: column;
+            }
+            
+            .video-card {
+                width: 100%;
+            }
+            
+            .classes-grid {
+                grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            }
+        }
+        
+        /* GPU Info Badge */
+        .gpu-badge {
+            display: inline-flex;
+            align-items: center;
+            margin-left: 10px;
+            padding: 0.35rem 0.75rem;
+            background: linear-gradient(90deg, #ff9500, #ff3800);
             color: white;
-            background-color: #333;
-            margin-bottom: 10px;
+            font-weight: 600;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            box-shadow: 0 3px 10px rgba(255, 120, 0, 0.3);
+        }
+        
+        .gpu-badge i {
+            margin-right: 5px;
+            animation: pulse 1.5s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.6;
+            }
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>Real-time Object Detection</h1>
-        <div class="text-center mb-3">
-            <a href="{{ url_for('index') }}" class="btn" style="background-color: #4CAF50; color: white; border-radius: 4px; padding: 8px 15px; text-decoration: none; display: inline-block;">
-                <i class="fas fa-arrow-left" style="margin-right: 8px;"></i>Back to Upload Page
+        <div class="header">
+            <h1>Real-time Object Detection</h1>
+            <p>Detect and segment objects in real-time using your webcam</p>
+            {% if gpu_info and gpu_info.available %}
+            <div class="gpu-badge mt-2">
+                <i class="fas fa-bolt"></i> GPU Accelerated: {{ gpu_info.name }}
+            </div>
+            {% endif %}
+        </div>
+        
+        <div class="text-center mb-4">
+            <span id="status" class="status-badge disconnected">
+                <i class="fas fa-circle"></i> Disconnected
+            </span>
+            
+            <a href="{{ url_for('index') }}" class="btn btn-outline-primary ms-2">
+                <i class="fas fa-arrow-left me-2"></i>Back to Upload Page
             </a>
         </div>
-        <div id="status">Disconnected</div>
         
-        <div class="video-container">
-            <div class="video-box">
-                <h3>Camera Input</h3>
-                <canvas id="camera-feed"></canvas>
-            </div>
-            <div class="video-box">
-                <h3>Processed Output</h3>
-                <canvas id="processed-feed"></canvas>
-            </div>
-        </div>
-        
-        <div class="controls">
-            <button id="startBtn">Start Camera</button>
-            <button id="stopBtn" disabled>Stop Camera</button>
-            
-            <div style="margin-top: 15px;">
-                <label for="frameRate">Frame Rate (FPS): <span id="frameRateValue">5</span></label>
-                <input type="range" id="frameRate" min="1" max="10" value="5" style="width: 100%;">
-                <div style="display: flex; justify-content: space-between; font-size: 0.8em; color: #666;">
-                    <span>Lower (Less CPU)</span>
-                    <span>Higher (More Responsive)</span>
+        <div class="row">
+            <div class="col-lg-8">
+                <!-- Video Feed Section -->
+                <div class="video-container">
+                    <div class="video-card">
+                        <div class="video-header">
+                            <i class="fas fa-camera"></i> Camera Input
+                        </div>
+                        <div class="video-content">
+                            <canvas id="camera-feed"></canvas>
+                        </div>
+                    </div>
+                    
+                    <div class="video-card">
+                        <div class="video-header">
+                            <i class="fas fa-magic"></i> Processed Output
+                        </div>
+                        <div class="video-content">
+                            <canvas id="processed-feed"></canvas>
+                            <div class="performance-metrics" id="performance-metrics" style="display: none;">
+                                <div class="metric-item">
+                                    <span class="metric-label"><i class="fas fa-tachometer-alt me-2"></i>Inference Time:</span>
+                                    <span class="metric-value" id="inference-time">0 ms</span>
+                                </div>
+                                <div class="metric-item">
+                                    <span class="metric-label"><i class="fas fa-clock me-2"></i>FPS:</span>
+                                    <span class="metric-value" id="fps-counter">0</span>
+                                </div>
+                                <div class="metric-item">
+                                    <span class="metric-label"><i class="fas fa-server me-2"></i>Device:</span>
+                                    <span class="metric-value" id="device-info">CPU</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Camera Controls -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <i class="fas fa-sliders-h"></i> Camera Controls
+                    </div>
+                    <div class="card-body">
+                        <div class="d-flex gap-3 mb-4">
+                            <button id="startBtn" class="btn btn-primary flex-grow-1">
+                                <i class="fas fa-play me-2"></i>Start Camera
+                            </button>
+                            <button id="stopBtn" class="btn btn-danger flex-grow-1" disabled>
+                                <i class="fas fa-stop me-2"></i>Stop Camera
+                            </button>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="frameRate" class="form-label d-flex justify-content-between">
+                                <span>Frame Rate (FPS)</span>
+                                <span id="frameRateValue" class="badge bg-primary">5</span>
+                            </label>
+                            <input type="range" class="form-range" id="frameRate" min="1" max="10" value="5">
+                            <div class="range-labels">
+                                <span>Lower (Less CPU)</span>
+                                <span>Higher (More Responsive)</span>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="quality" class="form-label d-flex justify-content-between">
+                                <span>Image Quality</span>
+                                <span id="qualityValue" class="badge bg-primary">60%</span>
+                            </label>
+                            <input type="range" class="form-range" id="quality" min="30" max="90" value="60">
+                            <div class="range-labels">
+                                <span>Lower (Less Memory)</span>
+                                <span>Higher (Better Image)</span>
+                            </div>
+                        </div>
+                        
+                        <div class="alert alert-info" role="alert">
+                            <i class="fas fa-info-circle me-2"></i>If you experience errors, try reducing the frame rate or image quality, or select fewer object classes.
+                        </div>
+                    </div>
                 </div>
             </div>
             
-            <div style="margin-top: 15px;">
-                <label for="quality">Image Quality: <span id="qualityValue">60%</span></label>
-                <input type="range" id="quality" min="30" max="90" value="60" style="width: 100%;">
-                <div style="display: flex; justify-content: space-between; font-size: 0.8em; color: #666;">
-                    <span>Lower (Less Memory)</span>
-                    <span>Higher (Better Image)</span>
+            <div class="col-lg-4">
+                <!-- Live Detection Results -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <i class="fas fa-chart-bar"></i> Live Detection Results
+                    </div>
+                    <div class="card-body p-0">
+                        <div id="detections-container" class="detection-items">
+                            <div class="text-center py-4 text-muted">
+                                <i class="fas fa-camera fa-3x mb-3"></i>
+                                <p>Start the camera to see detected objects</p>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-            </div>
-            
-            <div style="margin-top: 10px; font-size: 0.9em; color: #666; text-align: center;">
-                <p>If you experience errors, try reducing the frame rate or image quality, or select fewer object classes.</p>
-            </div>
-        </div>
-        
-        <div class="classes-container">
-            <h3>Object Classes to Detect</h3>
-            <div class="classes-grid" id="classes-list">
-                {% for idx, class_name in classes %}
-                <div class="class-checkbox">
-                    <input type="checkbox" id="class-{{ idx }}" value="{{ idx }}" checked>
-                    <label for="class-{{ idx }}">{{ class_name }}</label>
+                
+                <!-- Object Classes Selection -->
+                <div class="card">
+                    <div class="card-header">
+                        <i class="fas fa-tags"></i> Object Classes to Detect
+                    </div>
+                    <div class="card-body">
+                        <div class="d-flex gap-2 mb-3">
+                            <button type="button" class="btn btn-sm btn-outline-primary" id="select-all-classes">
+                                Select All
+                            </button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" id="deselect-all-classes">
+                                Deselect All
+                            </button>
+                        </div>
+                        
+                        <div class="classes-grid" id="classes-list">
+                            {% for idx, class_name in classes %}
+                            <div class="class-checkbox">
+                                <input type="checkbox" class="form-check-input" id="class-{{ idx }}" value="{{ idx }}" checked>
+                                <label class="form-check-label" for="class-{{ idx }}">{{ class_name }}</label>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
                 </div>
-                {% endfor %}
             </div>
         </div>
     </div>
@@ -166,6 +540,7 @@
         let isStreaming = false;
         let frameInterval = 200; // Default 5 FPS (200ms interval)
         let lastErrorTime = 0;
+        let intervalId;
         const cameraFeed = document.getElementById('camera-feed');
         const processedFeed = document.getElementById('processed-feed');
         const cameraCtx = cameraFeed.getContext('2d');
@@ -177,6 +552,11 @@
         const frameRateValue = document.getElementById('frameRateValue');
         const qualitySlider = document.getElementById('quality');
         const qualityValue = document.getElementById('qualityValue');
+        const performanceMetrics = document.getElementById('performance-metrics');
+        const inferenceTimeDisplay = document.getElementById('inference-time');
+        const fpsDisplay = document.getElementById('fps-counter');
+        const deviceDisplay = document.getElementById('device-info');
+        const detectionsContainer = document.getElementById('detections-container');
         
         // Set canvas dimensions
         cameraFeed.width = 640;
@@ -197,156 +577,260 @@
             qualityValue.textContent = quality + '%';
         });
         
+        // Select/Deselect all classes
+        document.getElementById('select-all-classes').addEventListener('click', function() {
+            document.querySelectorAll('#classes-list input[type="checkbox"]').forEach(checkbox => {
+                checkbox.checked = true;
+            });
+        });
+        
+        document.getElementById('deselect-all-classes').addEventListener('click', function() {
+            document.querySelectorAll('#classes-list input[type="checkbox"]').forEach(checkbox => {
+                checkbox.checked = false;
+            });
+        });
+        
+        // Function to update detections display
+        function updateDetections(detections) {
+            let html = '';
+            if (Object.keys(detections).length === 0) {
+                html = `<div class="text-center py-4 text-muted">
+                    <i class="fas fa-search fa-3x mb-3"></i>
+                    <p>No objects detected</p>
+                </div>`;
+            } else {
+                const sortedDetections = Object.entries(detections).sort((a, b) => b[1] - a[1]);
+                
+                for (const [className, count] of sortedDetections) {
+                    html += `<div class="detection-item">
+                        <span class="detection-label">${className}</span>
+                        <span class="detection-count">${count}</span>
+                    </div>`;
+                }
+            }
+            detectionsContainer.innerHTML = html;
+        }
+        
+        // Function to update performance metrics
+        function updatePerformanceMetrics(metrics) {
+            if (metrics) {
+                performanceMetrics.style.display = 'block';
+                inferenceTimeDisplay.textContent = metrics.inference_time_ms.toFixed(1) + ' ms';
+                fpsDisplay.textContent = metrics.fps.toFixed(1);
+                deviceDisplay.textContent = metrics.device;
+            } else {
+                performanceMetrics.style.display = 'none';
+            }
+        }
+        
         // Initialize Socket.IO connection
         function initSocket() {
             socket = io();
             
-            socket.on('connect', () => {
-                statusDisplay.textContent = 'Connected';
-                statusDisplay.style.backgroundColor = '#4CAF50';
+            // Update status when connecting
+            updateStatus('connecting');
+            
+            socket.on('connect', function() {
+                console.log('Connected to server');
+                updateStatus('connected');
             });
             
-            socket.on('disconnect', () => {
-                statusDisplay.textContent = 'Disconnected';
-                statusDisplay.style.backgroundColor = '#f44336';
-                stopStream();
-            });
-            
-            socket.on('processed_frame', (data) => {
-                // Display the processed frame
-                const img = new Image();
-                img.onload = () => {
-                    processedCtx.drawImage(img, 0, 0, processedFeed.width, processedFeed.height);
-                };
-                img.src = 'data:image/jpeg;base64,' + data.image;
-                
-                // Display error message if any
-                if (data.error) {
-                    showError("Error from server: " + data.error);
+            socket.on('disconnect', function() {
+                console.log('Disconnected from server');
+                updateStatus('disconnected');
+                if (isStreaming) {
+                    stopCamera();
                 }
             });
             
-            socket.on('error', (data) => {
-                showError(data.message);
+            socket.on('error', function(data) {
+                console.error('Socket error:', data.message);
+                displayError(data.message);
+            });
+            
+            socket.on('processed_frame', function(data) {
+                // Display processed image
+                const processedImg = new Image();
+                processedImg.onload = function() {
+                    processedCtx.clearRect(0, 0, processedFeed.width, processedFeed.height);
+                    processedCtx.drawImage(processedImg, 0, 0, processedFeed.width, processedFeed.height);
+                };
+                processedImg.src = 'data:image/jpeg;base64,' + data.image;
+                
+                // Update detected objects display
+                updateDetections(data.detected_objects);
+                
+                // Update performance metrics
+                if (data.performance) {
+                    updatePerformanceMetrics(data.performance);
+                }
+            });
+            
+            socket.on('gpu_info', function(data) {
+                console.log('GPU info received:', data);
+                // Update device info if needed
             });
         }
         
-        // Show error with throttling to prevent too many alerts
-        function showError(message) {
-            console.error("Socket error:", message);
+        function updateStatus(status) {
+            statusDisplay.className = 'status-badge ' + status;
             
-            // Throttle error display to avoid flooding
-            const now = Date.now();
-            if (now - lastErrorTime > 3000) { // Only show errors every 3 seconds
-                lastErrorTime = now;
-                
-                statusDisplay.textContent = 'Error: ' + message;
-                statusDisplay.style.backgroundColor = '#f44336';
-                
-                // Auto-adjust settings if it's a memory issue
-                if (message.includes("memory") || message.includes("allocate")) {
-                    // Try reducing quality first
-                    if (qualitySlider.value > 40) {
-                        qualitySlider.value = Math.max(30, qualitySlider.value - 15);
-                        qualityValue.textContent = qualitySlider.value + '%';
-                        
-                        // Then reduce frame rate if quality is already low
-                        if (qualitySlider.value <= 40 && frameRateSlider.value > 2) {
-                            frameRateSlider.value = Math.max(1, frameRateSlider.value - 2);
-                            frameRateValue.textContent = frameRateSlider.value;
-                            frameInterval = Math.round(1000 / frameRateSlider.value);
-                        }
-                        
-                        // Add visual indicator that settings were adjusted
-                        statusDisplay.textContent = 'Memory error: Reducing quality and frame rate automatically';
-                    }
-                }
+            switch(status) {
+                case 'connected':
+                    statusDisplay.innerHTML = '<i class="fas fa-circle"></i> Connected';
+                    break;
+                case 'connecting':
+                    statusDisplay.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Connecting...';
+                    break;
+                case 'disconnected':
+                    statusDisplay.innerHTML = '<i class="fas fa-circle"></i> Disconnected';
+                    break;
+                case 'error':
+                    statusDisplay.innerHTML = '<i class="fas fa-exclamation-circle"></i> Error';
+                    break;
+                default:
+                    statusDisplay.innerHTML = '<i class="fas fa-circle"></i> ' + status;
             }
         }
         
-        // Start video stream from webcam
-        async function startStream() {
-            try {
-                videoStream = await navigator.mediaDevices.getUserMedia({ 
-                    video: { 
-                        width: { ideal: 640 },
-                        height: { ideal: 480 }
-                    }
-                });
+        function displayError(message) {
+            // Avoid showing too many errors
+            const now = Date.now();
+            if (now - lastErrorTime < 5000) {
+                return;
+            }
+            lastErrorTime = now;
+            
+            updateStatus('error');
+            
+            // Create and show error toast
+            const errorToast = document.createElement('div');
+            errorToast.className = 'position-fixed bottom-0 end-0 p-3';
+            errorToast.style.zIndex = '5';
+            errorToast.innerHTML = `
+                <div class="toast show" role="alert" aria-live="assertive" aria-atomic="true">
+                    <div class="toast-header bg-danger text-white">
+                        <i class="fas fa-exclamation-circle me-2"></i>
+                        <strong class="me-auto">Error</strong>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast" aria-label="Close"></button>
+                    </div>
+                    <div class="toast-body">
+                        ${message}
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(errorToast);
+            
+            // Remove toast after 5 seconds
+            setTimeout(() => {
+                errorToast.remove();
+                if (socket.connected) {
+                    updateStatus('connected');
+                } else {
+                    updateStatus('disconnected');
+                }
+            }, 5000);
+        }
+        
+        function startCamera() {
+            if (isStreaming) return;
+            
+            // Request camera access
+            navigator.mediaDevices.getUserMedia({ 
+                video: {
+                    width: { ideal: 640 },
+                    height: { ideal: 480 }
+                }, 
+                audio: false 
+            })
+            .then(function(stream) {
+                videoStream = stream;
                 
+                // Create video element to get frames
                 const video = document.createElement('video');
-                video.srcObject = videoStream;
+                video.srcObject = stream;
                 video.play();
                 
-                video.onloadedmetadata = () => {
+                video.onloadedmetadata = function() {
                     isStreaming = true;
                     startBtn.disabled = true;
                     stopBtn.disabled = false;
                     
-                    // Reset status if it was showing an error
-                    if (statusDisplay.style.backgroundColor === 'rgb(244, 67, 54)') {
-                        statusDisplay.textContent = 'Connected';
-                        statusDisplay.style.backgroundColor = '#4CAF50';
-                    }
-                    
-                    // Start capturing frames
-                    captureFrame(video);
+                    // Start sending frames
+                    intervalId = setInterval(function() {
+                        if (!isStreaming) return;
+                        
+                        // Draw current video frame to camera canvas
+                        cameraCtx.drawImage(video, 0, 0, cameraFeed.width, cameraFeed.height);
+                        
+                        // Get selected classes
+                        const selectedClasses = [];
+                        document.querySelectorAll('#classes-list input[type="checkbox"]:checked').forEach(function(checkbox) {
+                            selectedClasses.push(checkbox.value);
+                        });
+                        
+                        // Get canvas data and send to server
+                        const quality = parseInt(qualitySlider.value) / 100;
+                        const imageData = cameraFeed.toDataURL('image/jpeg', quality);
+                        
+                        socket.emit('process_frame', {
+                            image: imageData,
+                            classes: selectedClasses,
+                            threshold: 0.7  // Could add a threshold slider
+                        });
+                    }, frameInterval);
                 };
-            } catch (err) {
+            })
+            .catch(function(err) {
                 console.error('Error accessing camera:', err);
-                alert('Could not access the camera. Please make sure you have a camera connected and have granted permission.');
-            }
+                displayError('Could not access camera: ' + err.message);
+            });
         }
         
-        // Stop video stream
-        function stopStream() {
+        function stopCamera() {
+            if (!isStreaming) return;
+            
+            clearInterval(intervalId);
+            
+            // Stop all video tracks
             if (videoStream) {
                 videoStream.getTracks().forEach(track => track.stop());
-                isStreaming = false;
-                startBtn.disabled = false;
-                stopBtn.disabled = true;
-                
-                // Clear canvases
-                cameraCtx.clearRect(0, 0, cameraFeed.width, cameraFeed.height);
-                processedCtx.clearRect(0, 0, processedFeed.width, processedFeed.height);
             }
+            
+            // Clear canvases
+            cameraCtx.clearRect(0, 0, cameraFeed.width, cameraFeed.height);
+            processedCtx.clearRect(0, 0, processedFeed.width, processedFeed.height);
+            
+            // Reset UI
+            isStreaming = false;
+            startBtn.disabled = false;
+            stopBtn.disabled = true;
+            performanceMetrics.style.display = 'none';
+            
+            // Reset detections
+            detectionsContainer.innerHTML = `
+                <div class="text-center py-4 text-muted">
+                    <i class="fas fa-camera fa-3x mb-3"></i>
+                    <p>Start the camera to see detected objects</p>
+                </div>
+            `;
         }
         
-        // Capture frame from video and send to server
-        function captureFrame(video) {
-            if (isStreaming) {
-                // Draw current video frame to canvas
-                cameraCtx.drawImage(video, 0, 0, cameraFeed.width, cameraFeed.height);
-                
-                // Get selected classes
-                const selectedClasses = [];
-                document.querySelectorAll('#classes-list input:checked').forEach(checkbox => {
-                    selectedClasses.push(checkbox.value);
-                });
-                
-                // Get image quality from slider (as a decimal)
-                const imageQuality = parseInt(qualitySlider.value) / 100;
-                
-                // Convert canvas to base64 image and send to server with current quality setting
-                const imageData = cameraFeed.toDataURL('image/jpeg', imageQuality).split(',')[1];
-                
-                socket.emit('process_frame', {
-                    image: imageData,
-                    classes: selectedClasses
-                });
-                
-                // Add delay between frames to prevent overwhelming the server and memory issues
-                // Using setTimeout instead of requestAnimationFrame for better control of timing
-                setTimeout(() => captureFrame(video), frameInterval);
+        // Set up event listeners
+        startBtn.addEventListener('click', startCamera);
+        stopBtn.addEventListener('click', stopCamera);
+        
+        // Initialize Socket.IO on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            initSocket();
+            
+            // Add Bootstrap script if needed
+            if (typeof bootstrap === 'undefined') {
+                const scriptTag = document.createElement('script');
+                scriptTag.src = 'https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js';
+                document.body.appendChild(scriptTag);
             }
-        }
-        
-        // Event listeners
-        startBtn.addEventListener('click', startStream);
-        stopBtn.addEventListener('click', stopStream);
-        
-        // Initialize on page load
-        document.addEventListener('DOMContentLoaded', initSocket);
+        });
     </script>
 </body>
 </html> 

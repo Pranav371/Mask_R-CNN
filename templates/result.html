@@ -459,6 +459,49 @@
                 transform: scale(1.2);
             }
         }
+        
+        /* Detection Chart Styles */
+        .detection-chart {
+            margin-top: 1.5rem;
+        }
+        
+        .detection-bar-item {
+            margin-bottom: 0.75rem;
+        }
+        
+        .detection-bar-label {
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+            display: flex;
+            justify-content: space-between;
+        }
+        
+        .detection-bar-container {
+            height: 24px;
+            background-color: rgba(0, 0, 0, 0.05);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+        
+        .detection-bar {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary-color), var(--accent-color));
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            padding: 0 10px;
+            color: white;
+            font-weight: 600;
+            font-size: 0.85rem;
+            min-width: 40px;
+            transition: width 1s ease;
+            animation: growBar 1.5s ease-out;
+        }
+        
+        @keyframes growBar {
+            from { width: 0%; }
+        }
     </style>
 </head>
 <body>
@@ -488,19 +531,88 @@
                 {% if file_type == 'image' and detected_objects %}
                 <div class="result-info-container mt-4">
                     <h4><i class="fas fa-chart-bar me-2"></i>Detection Summary</h4>
+                    
+                    <!-- Visual Detection Summary -->
+                    <div class="detection-summary mb-4">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h5 class="mb-0">Total Objects: {{ detected_objects.values()|sum }}</h5>
+                            <span class="badge-count">{{ detected_objects.values()|sum }}</span>
+                        </div>
+                        
+                        <!-- Visual Bar Chart -->
+                        <div class="detection-chart">
+                            {% for class_name, count in detected_objects.items()|sort(reverse=true, attribute='1') %}
+                            <div class="detection-bar-item">
+                                <div class="detection-bar-label">{{ class_name }}</div>
+                                <div class="detection-bar-container">
+                                    <div class="detection-bar" style="width: {{ (count / detected_objects.values()|sum * 100)|round }}%">
+                                        <span>{{ count }}</span>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    
+                    <!-- Tabular Display -->
                     <div class="table-responsive">
                         <table class="table detection-table">
                             <thead>
                                 <tr>
                                     <th>Object Class</th>
                                     <th>Count</th>
+                                    <th>Percentage</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                {% for class_name, count in detected_objects.items() %}
+                                {% for class_name, count in detected_objects.items()|sort(reverse=true, attribute='1') %}
                                 <tr>
-                                    <td>{{ class_name }}</td>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            {% if class_name == 'person' %}
+                                                <i class="fas fa-user me-2"></i>
+                                            {% elif class_name == 'bicycle' %}
+                                                <i class="fas fa-bicycle me-2"></i>
+                                            {% elif class_name == 'car' %}
+                                                <i class="fas fa-car me-2"></i>
+                                            {% elif class_name == 'motorcycle' %}
+                                                <i class="fas fa-motorcycle me-2"></i>
+                                            {% elif class_name == 'airplane' %}
+                                                <i class="fas fa-plane me-2"></i>
+                                            {% elif class_name == 'bus' %}
+                                                <i class="fas fa-bus me-2"></i>
+                                            {% elif class_name == 'train' %}
+                                                <i class="fas fa-train me-2"></i>
+                                            {% elif class_name == 'truck' %}
+                                                <i class="fas fa-truck me-2"></i>
+                                            {% elif class_name == 'boat' %}
+                                                <i class="fas fa-ship me-2"></i>
+                                            {% elif class_name == 'bird' %}
+                                                <i class="fas fa-dove me-2"></i>
+                                            {% elif class_name == 'cat' %}
+                                                <i class="fas fa-cat me-2"></i>
+                                            {% elif class_name == 'dog' %}
+                                                <i class="fas fa-dog me-2"></i>
+                                            {% elif class_name in ['chair', 'couch'] %}
+                                                <i class="fas fa-chair me-2"></i>
+                                            {% elif class_name in ['tv', 'laptop'] %}
+                                                <i class="fas fa-tv me-2"></i>
+                                            {% elif class_name == 'cell phone' %}
+                                                <i class="fas fa-mobile-alt me-2"></i>
+                                            {% elif class_name in ['bottle', 'wine glass', 'cup'] %}
+                                                <i class="fas fa-wine-glass me-2"></i>
+                                            {% elif class_name in ['fork', 'knife', 'spoon'] %}
+                                                <i class="fas fa-utensils me-2"></i>
+                                            {% elif class_name in ['pizza', 'cake', 'donut', 'sandwich'] %}
+                                                <i class="fas fa-pizza-slice me-2"></i>
+                                            {% else %}
+                                                <i class="fas fa-tag me-2"></i>
+                                            {% endif %}
+                                            {{ class_name }}
+                                        </div>
+                                    </td>
                                     <td><span class="badge-count">{{ count }}</span></td>
+                                    <td>{{ ((count / detected_objects.values()|sum) * 100)|round|int }}%</td>
                                 </tr>
                                 {% endfor %}
                             </tbody>
@@ -692,5 +804,18 @@
 
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Add animations to detection bars
+        document.addEventListener('DOMContentLoaded', function() {
+            // Add fadeIn animation to the detection bars if they exist
+            const bars = document.querySelectorAll('.detection-bar');
+            if (bars.length > 0) {
+                bars.forEach((bar, index) => {
+                    // Add a slight delay for each bar for a cascade effect
+                    bar.style.animationDelay = (index * 0.1) + 's';
+                });
+            }
+        });
+    </script>
 </body>
 </html> 
