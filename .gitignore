@@ -30,28 +30,28 @@ ENV/
 .idea/
 
 # Static directory content - exclude images and videos
-static/uploads/*.jpg
-static/uploads/*.jpeg
-static/uploads/*.png
-static/uploads/*.gif
-static/uploads/*.bmp
-static/uploads/*.mp4
-static/uploads/*.avi
-static/uploads/*.mov
-static/uploads/*.webm
-static/uploads/*.mkv
-static/results/*.jpg
-static/results/*.jpeg
-static/results/*.png
-static/results/*.gif
-static/results/*.bmp
-static/results/*.mp4
-static/results/*.avi
-static/results/*.mov
-static/results/*.webm
-static/results/*.mkv
-!static/uploads/.gitkeep
+static/uploads/**/*.jpg
+static/uploads/**/*.jpeg
+static/uploads/**/*.png
+static/uploads/**/*.gif
+static/uploads/**/*.bmp
+static/uploads/**/*.mp4
+static/uploads/**/*.avi
+static/uploads/**/*.mov
+static/uploads/**/*.webm
+static/uploads/**/*.mkv
+
+# Exclude all contents in static/results
+static/results/**
 !static/results/.gitkeep
+!static/results/**/.gitkeep
+
+# Exclude timelapse directory content
+timelapse/**
+static/timelapse/**
+# Keep the directory structure with .gitkeep
+!timelapse/.gitkeep
+!static/timelapse/.gitkeep
 
 # macOS specific files
 .DS_Store

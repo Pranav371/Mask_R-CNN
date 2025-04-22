@@ -534,210 +534,669 @@
 
         <div class="card">
             <div class="card-header">
-                <i class="fas fa-upload"></i> Upload & Process
+                <i class="fas fa-upload"></i> Upload File
             </div>
             <div class="card-body">
-                <form action="{{ url_for('upload_file') }}" method="post" enctype="multipart/form-data">
-                    <div class="mb-4">
-                        <label for="file" class="form-label">Select an image or video file:</label>
-                        <div class="upload-box" id="upload-box" onclick="document.getElementById('file').click();">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="60" height="60" fill="currentColor" class="bi bi-cloud-arrow-up mb-3" viewBox="0 0 16 16">
-                                <path fill-rule="evenodd" d="M7.646 5.146a.5.5 0 0 1 .708 0l2 2a.5.5 0 0 1-.708.708L8.5 6.707V10.5a.5.5 0 0 1-1 0V6.707L6.354 7.854a.5.5 0 1 1-.708-.708l2-2z"/>
-                                <path d="M4.406 3.342A5.53 5.53 0 0 1 8 2c2.69 0 4.923 2 5.166 4.579C14.758 6.804 16 8.137 16 9.773 16 11.569 14.502 13 12.687 13H3.781C1.708 13 0 11.366 0 9.318c0-1.763 1.266-3.223 2.942-3.593.143-.863.698-1.723 1.464-2.383zm.653.757c-.757.653-1.153 1.44-1.153 2.056v.448l-.445.049C2.064 6.805 1 7.952 1 9.318 1 10.785 2.23 12 3.781 12h8.906C13.98 12 15 10.988 15 9.773c0-1.216-1.02-2.228-2.313-2.228h-.5v-.5C12.188 4.825 10.328 3 8 3a4.53 4.53 0 0 0-2.941 1.1z"/>
-                            </svg>
-                            <h5>Drag & drop your file here or click to browse</h5>
-                            <p class="instructions">Supported formats: JPG, PNG, JPEG, MP4, AVI, MOV</p>
-                            <div id="file-name"></div>
-                        </div>
-                        <input type="file" class="form-control d-none" id="file" name="file" accept=".jpg,.jpeg,.png,.mp4,.avi,.mov">
-                    </div>
-                    
-                    <div class="mb-4">
-                        <label for="threshold" class="form-label">Detection Confidence Threshold:</label>
-                        <input type="range" class="form-range" min="0.1" max="1.0" step="0.05" value="0.7" id="threshold" name="threshold">
-                        <div class="threshold-labels">
-                            <span>0.1 (Low Confidence)</span>
-                            <span class="threshold-value" id="threshold-value">0.7</span>
-                            <span>1.0 (High Confidence)</span>
-                        </div>
-                    </div>
-                    
-                    <div class="form-group mb-4">
-                        <label for="selected_classes" class="form-label">Select Object Classes to Detect (optional)</label>
-                        
-                        <div class="category-selector mb-3">
-                            <div class="category-tabs">
-                                <button type="button" class="category-tab active" data-category="all">All Categories</button>
-                                <button type="button" class="category-tab" data-category="people">People</button>
-                                <button type="button" class="category-tab" data-category="animals">Animals</button>
-                                <button type="button" class="category-tab" data-category="vehicles">Vehicles</button>
-                                <button type="button" class="category-tab" data-category="food">Food & Drink</button>
-                                <button type="button" class="category-tab" data-category="furniture">Furniture & Household</button>
-                                <button type="button" class="category-tab" data-category="electronics">Electronics</button>
-                                <button type="button" class="category-tab" data-category="sports">Sports & Recreation</button>
-                                <button type="button" class="category-tab" data-category="other">Other Items</button>
+                <ul class="nav nav-tabs mb-4" id="uploadTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="single-upload-tab" data-bs-toggle="tab" data-bs-target="#single-upload" type="button" role="tab" aria-controls="single-upload" aria-selected="true">
+                            <i class="fas fa-file-upload me-2"></i>Single Upload
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="compare-upload-tab" data-bs-toggle="tab" data-bs-target="#compare-upload" type="button" role="tab" aria-controls="compare-upload" aria-selected="false">
+                            <i class="fas fa-balance-scale me-2"></i>Compare Images
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="timelapse-tab" data-bs-toggle="tab" data-bs-target="#timelapse-upload" type="button" role="tab" aria-controls="timelapse-upload" aria-selected="false">
+                            <i class="fas fa-film me-2"></i>Create Time-lapse
+                        </button>
+                    </li>
+                </ul>
+                
+                <div class="tab-content" id="uploadTabsContent">
+                    <div class="tab-pane fade show active" id="single-upload" role="tabpanel" aria-labelledby="single-upload-tab">
+                        <form action="{{ url_for('upload_file') }}" method="post" enctype="multipart/form-data">
+                            <div class="mb-4">
+                                <label for="file" class="form-label">Select an image or video file:</label>
+                                <div class="upload-box" id="upload-box" onclick="document.getElementById('file').click();">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="60" height="60" fill="currentColor" class="bi bi-cloud-arrow-up mb-3" viewBox="0 0 16 16">
+                                        <path fill-rule="evenodd" d="M7.646 5.146a.5.5 0 0 1 .708 0l2 2a.5.5 0 0 1-.708.708L8.5 6.707V10.5a.5.5 0 0 1-1 0V6.707L6.354 7.854a.5.5 0 1 1-.708-.708l2-2z"/>
+                                        <path d="M4.406 3.342A5.53 5.53 0 0 1 8 2c2.69 0 4.923 2 5.166 4.579C14.758 6.804 16 8.137 16 9.773 16 11.569 14.502 13 12.687 13H3.781C1.708 13 0 11.366 0 9.318c0-1.763 1.266-3.223 2.942-3.593.143-.863.698-1.723 1.464-2.383zm.653.757c-.757.653-1.153 1.44-1.153 2.056v.448l-.445.049C2.064 6.805 1 7.952 1 9.318 1 10.785 2.23 12 3.781 12h8.906C13.98 12 15 10.988 15 9.773c0-1.216-1.02-2.228-2.313-2.228h-.5v-.5C12.188 4.825 10.328 3 8 3a4.53 4.53 0 0 0-2.941 1.1z"/>
+                                    </svg>
+                                    <h5>Drag & drop your file here or click to browse</h5>
+                                    <p class="instructions">Supported formats: JPG, PNG, JPEG, MP4, AVI, MOV</p>
+                                    <div id="file-name"></div>
+                                </div>
+                                <input type="file" class="form-control d-none" id="file" name="file" accept=".jpg,.jpeg,.png,.mp4,.avi,.mov">
                             </div>
                             
-                            <div class="category-groups mt-3">
-                                <!-- All Categories (shown by default) -->
-                                <div class="category-group active" id="all-group">
-                                    <div class="row">
-                                        {% for idx, name in class_data %}
-                                        <div class="col-md-4 col-sm-6 mb-2">
-                                            <div class="form-check">
-                                                <input class="form-check-input" type="checkbox" name="selected_classes[]" value="{{ idx }}" id="class_{{ idx }}">
-                                                <label class="form-check-label" for="class_{{ idx }}">{{ name }}</label>
+                            <div class="mb-4">
+                                <label for="threshold" class="form-label">Detection Confidence Threshold:</label>
+                                <input type="range" class="form-range" min="0.1" max="1.0" step="0.05" value="0.7" id="threshold" name="threshold">
+                                <div class="threshold-labels">
+                                    <span>0.1 (Low Confidence)</span>
+                                    <span class="threshold-value" id="threshold-value">0.7</span>
+                                    <span>1.0 (High Confidence)</span>
+                                </div>
+                            </div>
+                            
+                            <div class="form-group mb-4">
+                                <label for="selected_classes" class="form-label">Select Object Classes to Detect (optional)</label>
+                                
+                                <div class="category-selector mb-3">
+                                    <div class="category-tabs">
+                                        <button type="button" class="category-tab active" data-category="all">All Categories</button>
+                                        <button type="button" class="category-tab" data-category="people">People</button>
+                                        <button type="button" class="category-tab" data-category="animals">Animals</button>
+                                        <button type="button" class="category-tab" data-category="vehicles">Vehicles</button>
+                                        <button type="button" class="category-tab" data-category="food">Food & Drink</button>
+                                        <button type="button" class="category-tab" data-category="furniture">Furniture & Household</button>
+                                        <button type="button" class="category-tab" data-category="electronics">Electronics</button>
+                                        <button type="button" class="category-tab" data-category="sports">Sports & Recreation</button>
+                                        <button type="button" class="category-tab" data-category="other">Other Items</button>
+                                    </div>
+                                    
+                                    <div class="category-groups mt-3">
+                                        <!-- All Categories (shown by default) -->
+                                        <div class="category-group active" id="all-group">
+                                            <div class="row">
+                                                {% for idx, name in class_data %}
+                                                <div class="col-md-4 col-sm-6 mb-2">
+                                                    <div class="form-check">
+                                                        <input class="form-check-input" type="checkbox" name="selected_classes[]" value="{{ idx }}" id="class_{{ idx }}">
+                                                        <label class="form-check-label" for="class_{{ idx }}">{{ name }}</label>
+                                                    </div>
+                                                </div>
+                                                {% endfor %}
+                                            </div>
+                                            <div class="mt-3">
+                                                <button type="button" class="btn btn-sm btn-outline-primary" id="select-all">Select All</button>
+                                                <button type="button" class="btn btn-sm btn-outline-secondary" id="deselect-all">Deselect All</button>
                                             </div>
                                         </div>
-                                        {% endfor %}
-                                    </div>
-                                    <div class="mt-3">
-                                        <button type="button" class="btn btn-sm btn-outline-primary" id="select-all">Select All</button>
-                                        <button type="button" class="btn btn-sm btn-outline-secondary" id="deselect-all">Deselect All</button>
+                                        
+                                        <!-- People Group -->
+                                        <div class="category-group" id="people-group">
+                                            <div class="row">
+                                                {% for idx, name in class_data %}
+                                                {% if name == 'person' %}
+                                                <div class="col-md-4 col-sm-6 mb-2">
+                                                    <div class="form-check">
+                                                        <input class="form-check-input" type="checkbox" name="selected_classes[]" value="{{ idx }}" id="people_{{ idx }}">
+                                                        <label class="form-check-label" for="people_{{ idx }}">{{ name }}</label>
+                                                    </div>
+                                                </div>
+                                                {% endif %}
+                                                {% endfor %}
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Animals Group -->
+                                        <div class="category-group" id="animals-group">
+                                            <div class="row">
+                                                {% for idx, name in class_data %}
+                                                {% if name in ['bird', 'cat', 'dog', 'horse', 'sheep', 'cow', 'elephant', 'bear', 'zebra', 'giraffe'] %}
+                                                <div class="col-md-4 col-sm-6 mb-2">
+                                                    <div class="form-check">
+                                                        <input class="form-check-input" type="checkbox" name="selected_classes[]" value="{{ idx }}" id="animals_{{ idx }}">
+                                                        <label class="form-check-label" for="animals_{{ idx }}">{{ name }}</label>
+                                                    </div>
+                                                </div>
+                                                {% endif %}
+                                                {% endfor %}
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Vehicles Group -->
+                                        <div class="category-group" id="vehicles-group">
+                                            <div class="row">
+                                                {% for idx, name in class_data %}
+                                                {% if name in ['bicycle', 'car', 'motorcycle', 'airplane', 'bus', 'train', 'truck', 'boat'] %}
+                                                <div class="col-md-4 col-sm-6 mb-2">
+                                                    <div class="form-check">
+                                                        <input class="form-check-input" type="checkbox" name="selected_classes[]" value="{{ idx }}" id="vehicles_{{ idx }}">
+                                                        <label class="form-check-label" for="vehicles_{{ idx }}">{{ name }}</label>
+                                                    </div>
+                                                </div>
+                                                {% endif %}
+                                                {% endfor %}
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Food & Drink Group -->
+                                        <div class="category-group" id="food-group">
+                                            <div class="row">
+                                                {% for idx, name in class_data %}
+                                                {% if name in ['banana', 'apple', 'sandwich', 'orange', 'broccoli', 'carrot', 'hot dog', 'pizza', 'donut', 'cake', 'bottle', 'wine glass', 'cup', 'fork', 'knife', 'spoon', 'bowl'] %}
+                                                <div class="col-md-4 col-sm-6 mb-2">
+                                                    <div class="form-check">
+                                                        <input class="form-check-input" type="checkbox" name="selected_classes[]" value="{{ idx }}" id="food_{{ idx }}">
+                                                        <label class="form-check-label" for="food_{{ idx }}">{{ name }}</label>
+                                                    </div>
+                                                </div>
+                                                {% endif %}
+                                                {% endfor %}
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Furniture & Household Group -->
+                                        <div class="category-group" id="furniture-group">
+                                            <div class="row">
+                                                {% for idx, name in class_data %}
+                                                {% if name in ['chair', 'couch', 'potted plant', 'bed', 'dining table', 'toilet', 'tv', 'microwave', 'oven', 'toaster', 'sink', 'refrigerator', 'vase', 'scissors'] %}
+                                                <div class="col-md-4 col-sm-6 mb-2">
+                                                    <div class="form-check">
+                                                        <input class="form-check-input" type="checkbox" name="selected_classes[]" value="{{ idx }}" id="furniture_{{ idx }}">
+                                                        <label class="form-check-label" for="furniture_{{ idx }}">{{ name }}</label>
+                                                    </div>
+                                                </div>
+                                                {% endif %}
+                                                {% endfor %}
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Electronics Group -->
+                                        <div class="category-group" id="electronics-group">
+                                            <div class="row">
+                                                {% for idx, name in class_data %}
+                                                {% if name in ['tv', 'laptop', 'mouse', 'remote', 'keyboard', 'cell phone', 'microwave', 'oven', 'toaster', 'refrigerator'] %}
+                                                <div class="col-md-4 col-sm-6 mb-2">
+                                                    <div class="form-check">
+                                                        <input class="form-check-input" type="checkbox" name="selected_classes[]" value="{{ idx }}" id="electronics_{{ idx }}">
+                                                        <label class="form-check-label" for="electronics_{{ idx }}">{{ name }}</label>
+                                                    </div>
+                                                </div>
+                                                {% endif %}
+                                                {% endfor %}
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Sports & Recreation Group -->
+                                        <div class="category-group" id="sports-group">
+                                            <div class="row">
+                                                {% for idx, name in class_data %}
+                                                {% if name in ['frisbee', 'skis', 'snowboard', 'sports ball', 'kite', 'baseball bat', 'baseball glove', 'skateboard', 'surfboard', 'tennis racket'] %}
+                                                <div class="col-md-4 col-sm-6 mb-2">
+                                                    <div class="form-check">
+                                                        <input class="form-check-input" type="checkbox" name="selected_classes[]" value="{{ idx }}" id="sports_{{ idx }}">
+                                                        <label class="form-check-label" for="sports_{{ idx }}">{{ name }}</label>
+                                                    </div>
+                                                </div>
+                                                {% endif %}
+                                                {% endfor %}
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Other Items Group -->
+                                        <div class="category-group" id="other-group">
+                                            <div class="row">
+                                                {% for idx, name in class_data %}
+                                                {% if name in ['traffic light', 'fire hydrant', 'stop sign', 'parking meter', 'bench', 'backpack', 'umbrella', 'handbag', 'tie', 'suitcase', 'book', 'clock', 'teddy bear', 'hair drier', 'toothbrush'] %}
+                                                <div class="col-md-4 col-sm-6 mb-2">
+                                                    <div class="form-check">
+                                                        <input class="form-check-input" type="checkbox" name="selected_classes[]" value="{{ idx }}" id="other_{{ idx }}">
+                                                        <label class="form-check-label" for="other_{{ idx }}">{{ name }}</label>
+                                                    </div>
+                                                </div>
+                                                {% endif %}
+                                                {% endfor %}
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                                 
-                                <!-- People Group -->
-                                <div class="category-group" id="people-group">
-                                    <div class="row">
-                                        {% for idx, name in class_data %}
-                                        {% if name == 'person' %}
-                                        <div class="col-md-4 col-sm-6 mb-2">
-                                            <div class="form-check">
-                                                <input class="form-check-input" type="checkbox" name="selected_classes[]" value="{{ idx }}" id="people_{{ idx }}">
-                                                <label class="form-check-label" for="people_{{ idx }}">{{ name }}</label>
-                                            </div>
+                                <div class="form-text">
+                                    If none selected, all object classes will be detected in the image/video.
+                                </div>
+                            </div>
+                            
+                            <div class="d-grid mt-4">
+                                <button type="submit" class="btn btn-primary btn-lg" id="submit-btn" disabled>
+                                    <i class="fas fa-cogs me-2"></i>Process
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                    
+                    <div class="tab-pane fade" id="compare-upload" role="tabpanel" aria-labelledby="compare-upload-tab">
+                        <form action="{{ url_for('compare_images') }}" method="post" enctype="multipart/form-data">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-4">
+                                        <label for="file1" class="form-label">First Image</label>
+                                        <div class="upload-box" id="upload-box-1">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-upload-cloud">
+                                                <polyline points="16 16 12 12 8 16"></polyline>
+                                                <line x1="12" y1="12" x2="12" y2="21"></line>
+                                                <path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"></path>
+                                                <polyline points="16 16 12 12 8 16"></polyline>
+                                            </svg>
+                                            <h5>Upload First Image</h5>
+                                            <p class="instructions">Drag & drop an image here, or click to browse</p>
+                                            <input type="file" name="file1" id="file1" class="d-none" accept=".jpg,.jpeg,.png">
                                         </div>
-                                        {% endif %}
-                                        {% endfor %}
+                                        <div id="file1-name" class="d-none"></div>
                                     </div>
                                 </div>
                                 
-                                <!-- Animals Group -->
-                                <div class="category-group" id="animals-group">
-                                    <div class="row">
-                                        {% for idx, name in class_data %}
-                                        {% if name in ['bird', 'cat', 'dog', 'horse', 'sheep', 'cow', 'elephant', 'bear', 'zebra', 'giraffe'] %}
-                                        <div class="col-md-4 col-sm-6 mb-2">
-                                            <div class="form-check">
-                                                <input class="form-check-input" type="checkbox" name="selected_classes[]" value="{{ idx }}" id="animals_{{ idx }}">
-                                                <label class="form-check-label" for="animals_{{ idx }}">{{ name }}</label>
-                                            </div>
+                                <div class="col-md-6">
+                                    <div class="mb-4">
+                                        <label for="file2" class="form-label">Second Image</label>
+                                        <div class="upload-box" id="upload-box-2">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-upload-cloud">
+                                                <polyline points="16 16 12 12 8 16"></polyline>
+                                                <line x1="12" y1="12" x2="12" y2="21"></line>
+                                                <path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"></path>
+                                                <polyline points="16 16 12 12 8 16"></polyline>
+                                            </svg>
+                                            <h5>Upload Second Image</h5>
+                                            <p class="instructions">Drag & drop an image here, or click to browse</p>
+                                            <input type="file" name="file2" id="file2" class="d-none" accept=".jpg,.jpeg,.png">
                                         </div>
-                                        {% endif %}
-                                        {% endfor %}
-                                    </div>
-                                </div>
-                                
-                                <!-- Vehicles Group -->
-                                <div class="category-group" id="vehicles-group">
-                                    <div class="row">
-                                        {% for idx, name in class_data %}
-                                        {% if name in ['bicycle', 'car', 'motorcycle', 'airplane', 'bus', 'train', 'truck', 'boat'] %}
-                                        <div class="col-md-4 col-sm-6 mb-2">
-                                            <div class="form-check">
-                                                <input class="form-check-input" type="checkbox" name="selected_classes[]" value="{{ idx }}" id="vehicles_{{ idx }}">
-                                                <label class="form-check-label" for="vehicles_{{ idx }}">{{ name }}</label>
-                                            </div>
-                                        </div>
-                                        {% endif %}
-                                        {% endfor %}
-                                    </div>
-                                </div>
-                                
-                                <!-- Food & Drink Group -->
-                                <div class="category-group" id="food-group">
-                                    <div class="row">
-                                        {% for idx, name in class_data %}
-                                        {% if name in ['banana', 'apple', 'sandwich', 'orange', 'broccoli', 'carrot', 'hot dog', 'pizza', 'donut', 'cake', 'bottle', 'wine glass', 'cup', 'fork', 'knife', 'spoon', 'bowl'] %}
-                                        <div class="col-md-4 col-sm-6 mb-2">
-                                            <div class="form-check">
-                                                <input class="form-check-input" type="checkbox" name="selected_classes[]" value="{{ idx }}" id="food_{{ idx }}">
-                                                <label class="form-check-label" for="food_{{ idx }}">{{ name }}</label>
-                                            </div>
-                                        </div>
-                                        {% endif %}
-                                        {% endfor %}
-                                    </div>
-                                </div>
-                                
-                                <!-- Furniture & Household Group -->
-                                <div class="category-group" id="furniture-group">
-                                    <div class="row">
-                                        {% for idx, name in class_data %}
-                                        {% if name in ['chair', 'couch', 'potted plant', 'bed', 'dining table', 'toilet', 'tv', 'microwave', 'oven', 'toaster', 'sink', 'refrigerator', 'vase', 'scissors'] %}
-                                        <div class="col-md-4 col-sm-6 mb-2">
-                                            <div class="form-check">
-                                                <input class="form-check-input" type="checkbox" name="selected_classes[]" value="{{ idx }}" id="furniture_{{ idx }}">
-                                                <label class="form-check-label" for="furniture_{{ idx }}">{{ name }}</label>
-                                            </div>
-                                        </div>
-                                        {% endif %}
-                                        {% endfor %}
-                                    </div>
-                                </div>
-                                
-                                <!-- Electronics Group -->
-                                <div class="category-group" id="electronics-group">
-                                    <div class="row">
-                                        {% for idx, name in class_data %}
-                                        {% if name in ['tv', 'laptop', 'mouse', 'remote', 'keyboard', 'cell phone', 'microwave', 'oven', 'toaster', 'refrigerator'] %}
-                                        <div class="col-md-4 col-sm-6 mb-2">
-                                            <div class="form-check">
-                                                <input class="form-check-input" type="checkbox" name="selected_classes[]" value="{{ idx }}" id="electronics_{{ idx }}">
-                                                <label class="form-check-label" for="electronics_{{ idx }}">{{ name }}</label>
-                                            </div>
-                                        </div>
-                                        {% endif %}
-                                        {% endfor %}
-                                    </div>
-                                </div>
-                                
-                                <!-- Sports & Recreation Group -->
-                                <div class="category-group" id="sports-group">
-                                    <div class="row">
-                                        {% for idx, name in class_data %}
-                                        {% if name in ['frisbee', 'skis', 'snowboard', 'sports ball', 'kite', 'baseball bat', 'baseball glove', 'skateboard', 'surfboard', 'tennis racket'] %}
-                                        <div class="col-md-4 col-sm-6 mb-2">
-                                            <div class="form-check">
-                                                <input class="form-check-input" type="checkbox" name="selected_classes[]" value="{{ idx }}" id="sports_{{ idx }}">
-                                                <label class="form-check-label" for="sports_{{ idx }}">{{ name }}</label>
-                                            </div>
-                                        </div>
-                                        {% endif %}
-                                        {% endfor %}
-                                    </div>
-                                </div>
-                                
-                                <!-- Other Items Group -->
-                                <div class="category-group" id="other-group">
-                                    <div class="row">
-                                        {% for idx, name in class_data %}
-                                        {% if name in ['traffic light', 'fire hydrant', 'stop sign', 'parking meter', 'bench', 'backpack', 'umbrella', 'handbag', 'tie', 'suitcase', 'book', 'clock', 'teddy bear', 'hair drier', 'toothbrush'] %}
-                                        <div class="col-md-4 col-sm-6 mb-2">
-                                            <div class="form-check">
-                                                <input class="form-check-input" type="checkbox" name="selected_classes[]" value="{{ idx }}" id="other_{{ idx }}">
-                                                <label class="form-check-label" for="other_{{ idx }}">{{ name }}</label>
-                                            </div>
-                                        </div>
-                                        {% endif %}
-                                        {% endfor %}
+                                        <div id="file2-name" class="d-none"></div>
                                     </div>
                                 </div>
                             </div>
-                        </div>
-                        
-                        <div class="form-text">
-                            If none selected, all object classes will be detected in the image/video.
-                        </div>
+                            
+                            <div class="mb-4">
+                                <label for="threshold" class="form-label">Detection Confidence Threshold</label>
+                                <div class="d-flex align-items-center gap-3">
+                                    <input type="range" class="form-range" min="0.5" max="0.9" step="0.05" id="threshold-compare" name="threshold" value="0.7">
+                                    <span id="threshold-value-compare">0.7</span>
+                                </div>
+                                <div class="form-text">Higher values result in fewer but more confident detections.</div>
+                            </div>
+                            
+                            <div class="mb-4">
+                                <label class="form-label">Object Classes to Detect</label>
+                                <!-- Use the same class selection interface from the single upload tab -->
+                                <div class="category-selector mb-3">
+                                    <div class="category-tabs">
+                                        <button type="button" class="category-tab active" data-category="all">All Categories</button>
+                                        <button type="button" class="category-tab" data-category="people">People</button>
+                                        <button type="button" class="category-tab" data-category="animals">Animals</button>
+                                        <button type="button" class="category-tab" data-category="vehicles">Vehicles</button>
+                                        <button type="button" class="category-tab" data-category="food">Food & Drink</button>
+                                        <button type="button" class="category-tab" data-category="furniture">Furniture & Household</button>
+                                        <button type="button" class="category-tab" data-category="electronics">Electronics</button>
+                                        <button type="button" class="category-tab" data-category="sports">Sports & Recreation</button>
+                                        <button type="button" class="category-tab" data-category="other">Other Items</button>
+                                    </div>
+                                    
+                                    <div class="category-groups mt-3">
+                                        <!-- All Categories (shown by default) -->
+                                        <div class="category-group active" id="all-group">
+                                            <div class="row">
+                                                {% for idx, name in class_data %}
+                                                <div class="col-md-4 col-sm-6 mb-2">
+                                                    <div class="form-check">
+                                                        <input class="form-check-input" type="checkbox" name="selected_classes[]" value="{{ idx }}" id="class_{{ idx }}">
+                                                        <label class="form-check-label" for="class_{{ idx }}">{{ name }}</label>
+                                                    </div>
+                                                </div>
+                                                {% endfor %}
+                                            </div>
+                                            <div class="mt-3">
+                                                <button type="button" class="btn btn-sm btn-outline-primary" id="select-all">Select All</button>
+                                                <button type="button" class="btn btn-sm btn-outline-secondary" id="deselect-all">Deselect All</button>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- People Group -->
+                                        <div class="category-group" id="people-group">
+                                            <div class="row">
+                                                {% for idx, name in class_data %}
+                                                {% if name == 'person' %}
+                                                <div class="col-md-4 col-sm-6 mb-2">
+                                                    <div class="form-check">
+                                                        <input class="form-check-input" type="checkbox" name="selected_classes[]" value="{{ idx }}" id="people_{{ idx }}">
+                                                        <label class="form-check-label" for="people_{{ idx }}">{{ name }}</label>
+                                                    </div>
+                                                </div>
+                                                {% endif %}
+                                                {% endfor %}
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Animals Group -->
+                                        <div class="category-group" id="animals-group">
+                                            <div class="row">
+                                                {% for idx, name in class_data %}
+                                                {% if name in ['bird', 'cat', 'dog', 'horse', 'sheep', 'cow', 'elephant', 'bear', 'zebra', 'giraffe'] %}
+                                                <div class="col-md-4 col-sm-6 mb-2">
+                                                    <div class="form-check">
+                                                        <input class="form-check-input" type="checkbox" name="selected_classes[]" value="{{ idx }}" id="animals_{{ idx }}">
+                                                        <label class="form-check-label" for="animals_{{ idx }}">{{ name }}</label>
+                                                    </div>
+                                                </div>
+                                                {% endif %}
+                                                {% endfor %}
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Vehicles Group -->
+                                        <div class="category-group" id="vehicles-group">
+                                            <div class="row">
+                                                {% for idx, name in class_data %}
+                                                {% if name in ['bicycle', 'car', 'motorcycle', 'airplane', 'bus', 'train', 'truck', 'boat'] %}
+                                                <div class="col-md-4 col-sm-6 mb-2">
+                                                    <div class="form-check">
+                                                        <input class="form-check-input" type="checkbox" name="selected_classes[]" value="{{ idx }}" id="vehicles_{{ idx }}">
+                                                        <label class="form-check-label" for="vehicles_{{ idx }}">{{ name }}</label>
+                                                    </div>
+                                                </div>
+                                                {% endif %}
+                                                {% endfor %}
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Food & Drink Group -->
+                                        <div class="category-group" id="food-group">
+                                            <div class="row">
+                                                {% for idx, name in class_data %}
+                                                {% if name in ['banana', 'apple', 'sandwich', 'orange', 'broccoli', 'carrot', 'hot dog', 'pizza', 'donut', 'cake', 'bottle', 'wine glass', 'cup', 'fork', 'knife', 'spoon', 'bowl'] %}
+                                                <div class="col-md-4 col-sm-6 mb-2">
+                                                    <div class="form-check">
+                                                        <input class="form-check-input" type="checkbox" name="selected_classes[]" value="{{ idx }}" id="food_{{ idx }}">
+                                                        <label class="form-check-label" for="food_{{ idx }}">{{ name }}</label>
+                                                    </div>
+                                                </div>
+                                                {% endif %}
+                                                {% endfor %}
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Furniture & Household Group -->
+                                        <div class="category-group" id="furniture-group">
+                                            <div class="row">
+                                                {% for idx, name in class_data %}
+                                                {% if name in ['chair', 'couch', 'potted plant', 'bed', 'dining table', 'toilet', 'tv', 'microwave', 'oven', 'toaster', 'sink', 'refrigerator', 'vase', 'scissors'] %}
+                                                <div class="col-md-4 col-sm-6 mb-2">
+                                                    <div class="form-check">
+                                                        <input class="form-check-input" type="checkbox" name="selected_classes[]" value="{{ idx }}" id="furniture_{{ idx }}">
+                                                        <label class="form-check-label" for="furniture_{{ idx }}">{{ name }}</label>
+                                                    </div>
+                                                </div>
+                                                {% endif %}
+                                                {% endfor %}
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Electronics Group -->
+                                        <div class="category-group" id="electronics-group">
+                                            <div class="row">
+                                                {% for idx, name in class_data %}
+                                                {% if name in ['tv', 'laptop', 'mouse', 'remote', 'keyboard', 'cell phone', 'microwave', 'oven', 'toaster', 'refrigerator'] %}
+                                                <div class="col-md-4 col-sm-6 mb-2">
+                                                    <div class="form-check">
+                                                        <input class="form-check-input" type="checkbox" name="selected_classes[]" value="{{ idx }}" id="electronics_{{ idx }}">
+                                                        <label class="form-check-label" for="electronics_{{ idx }}">{{ name }}</label>
+                                                    </div>
+                                                </div>
+                                                {% endif %}
+                                                {% endfor %}
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Sports & Recreation Group -->
+                                        <div class="category-group" id="sports-group">
+                                            <div class="row">
+                                                {% for idx, name in class_data %}
+                                                {% if name in ['frisbee', 'skis', 'snowboard', 'sports ball', 'kite', 'baseball bat', 'baseball glove', 'skateboard', 'surfboard', 'tennis racket'] %}
+                                                <div class="col-md-4 col-sm-6 mb-2">
+                                                    <div class="form-check">
+                                                        <input class="form-check-input" type="checkbox" name="selected_classes[]" value="{{ idx }}" id="sports_{{ idx }}">
+                                                        <label class="form-check-label" for="sports_{{ idx }}">{{ name }}</label>
+                                                    </div>
+                                                </div>
+                                                {% endif %}
+                                                {% endfor %}
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Other Items Group -->
+                                        <div class="category-group" id="other-group">
+                                            <div class="row">
+                                                {% for idx, name in class_data %}
+                                                {% if name in ['traffic light', 'fire hydrant', 'stop sign', 'parking meter', 'bench', 'backpack', 'umbrella', 'handbag', 'tie', 'suitcase', 'book', 'clock', 'teddy bear', 'hair drier', 'toothbrush'] %}
+                                                <div class="col-md-4 col-sm-6 mb-2">
+                                                    <div class="form-check">
+                                                        <input class="form-check-input" type="checkbox" name="selected_classes[]" value="{{ idx }}" id="other_{{ idx }}">
+                                                        <label class="form-check-label" for="other_{{ idx }}">{{ name }}</label>
+                                                    </div>
+                                                </div>
+                                                {% endif %}
+                                                {% endfor %}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="d-grid mt-4">
+                                <button type="submit" class="btn btn-primary btn-lg" id="compare-btn" disabled>
+                                    <i class="fas fa-balance-scale me-2"></i>Compare Images
+                                </button>
+                            </div>
+                        </form>
                     </div>
                     
-                    <div class="d-grid mt-4">
-                        <button type="submit" class="btn btn-primary btn-lg" id="submit-btn" disabled>
-                            <i class="fas fa-cogs me-2"></i>Process
-                        </button>
+                    <div class="tab-pane fade" id="timelapse-upload" role="tabpanel" aria-labelledby="timelapse-tab">
+                        <form action="{{ url_for('create_timelapse') }}" method="post" enctype="multipart/form-data">
+                            <div class="mb-4">
+                                <label for="timelapse-files" class="form-label">Upload Multiple Images</label>
+                                <div class="upload-box" id="timelapse-upload-box">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-upload-cloud">
+                                        <polyline points="16 16 12 12 8 16"></polyline>
+                                        <line x1="12" y1="12" x2="12" y2="21"></line>
+                                        <path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"></path>
+                                        <polyline points="16 16 12 12 8 16"></polyline>
+                                    </svg>
+                                    <h5>Upload Images for Time-lapse</h5>
+                                    <p class="instructions">Drag & drop multiple images here, or click to browse</p>
+                                    <p class="text-muted small">Images will be processed in alphabetical order</p>
+                                    <input type="file" name="files[]" id="timelapse-files" class="d-none" accept=".jpg,.jpeg,.png" multiple>
+                                </div>
+                                <div id="timelapse-file-names" class="mt-3"></div>
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-4">
+                                        <label for="threshold-timelapse" class="form-label">Detection Confidence Threshold</label>
+                                        <div class="d-flex align-items-center gap-3">
+                                            <input type="range" class="form-range" min="0.5" max="0.9" step="0.05" id="threshold-timelapse" name="threshold" value="0.7">
+                                            <span id="threshold-value-timelapse">0.7</span>
+                                        </div>
+                                        <div class="form-text">Higher values result in fewer but more confident detections.</div>
+                                    </div>
+                                </div>
+                                
+                                <div class="col-md-6">
+                                    <div class="mb-4">
+                                        <label for="fps" class="form-label">Frames Per Second (FPS)</label>
+                                        <input type="number" class="form-control" id="fps" name="fps" min="1" max="30" value="2">
+                                        <div class="form-text">Lower FPS creates slower videos. Range: 1-30.</div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="mb-4">
+                                <label class="form-label">Object Classes to Detect</label>
+                                <!-- Use the same class selection interface from the single upload tab -->
+                                <div class="category-selector mb-3">
+                                    <div class="category-tabs">
+                                        <button type="button" class="category-tab active" data-category="all">All Categories</button>
+                                        <button type="button" class="category-tab" data-category="people">People</button>
+                                        <button type="button" class="category-tab" data-category="animals">Animals</button>
+                                        <button type="button" class="category-tab" data-category="vehicles">Vehicles</button>
+                                        <button type="button" class="category-tab" data-category="food">Food & Drink</button>
+                                        <button type="button" class="category-tab" data-category="furniture">Furniture & Household</button>
+                                        <button type="button" class="category-tab" data-category="electronics">Electronics</button>
+                                        <button type="button" class="category-tab" data-category="sports">Sports & Recreation</button>
+                                        <button type="button" class="category-tab" data-category="other">Other Items</button>
+                                    </div>
+                                    
+                                    <div class="category-groups mt-3">
+                                        <!-- All Categories (shown by default) -->
+                                        <div class="category-group active" id="all-group">
+                                            <div class="row">
+                                                {% for idx, name in class_data %}
+                                                <div class="col-md-4 col-sm-6 mb-2">
+                                                    <div class="form-check">
+                                                        <input class="form-check-input" type="checkbox" name="selected_classes[]" value="{{ idx }}" id="class_{{ idx }}">
+                                                        <label class="form-check-label" for="class_{{ idx }}">{{ name }}</label>
+                                                    </div>
+                                                </div>
+                                                {% endfor %}
+                                            </div>
+                                            <div class="mt-3">
+                                                <button type="button" class="btn btn-sm btn-outline-primary" id="select-all">Select All</button>
+                                                <button type="button" class="btn btn-sm btn-outline-secondary" id="deselect-all">Deselect All</button>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- People Group -->
+                                        <div class="category-group" id="people-group">
+                                            <div class="row">
+                                                {% for idx, name in class_data %}
+                                                {% if name == 'person' %}
+                                                <div class="col-md-4 col-sm-6 mb-2">
+                                                    <div class="form-check">
+                                                        <input class="form-check-input" type="checkbox" name="selected_classes[]" value="{{ idx }}" id="people_{{ idx }}">
+                                                        <label class="form-check-label" for="people_{{ idx }}">{{ name }}</label>
+                                                    </div>
+                                                </div>
+                                                {% endif %}
+                                                {% endfor %}
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Animals Group -->
+                                        <div class="category-group" id="animals-group">
+                                            <div class="row">
+                                                {% for idx, name in class_data %}
+                                                {% if name in ['bird', 'cat', 'dog', 'horse', 'sheep', 'cow', 'elephant', 'bear', 'zebra', 'giraffe'] %}
+                                                <div class="col-md-4 col-sm-6 mb-2">
+                                                    <div class="form-check">
+                                                        <input class="form-check-input" type="checkbox" name="selected_classes[]" value="{{ idx }}" id="animals_{{ idx }}">
+                                                        <label class="form-check-label" for="animals_{{ idx }}">{{ name }}</label>
+                                                    </div>
+                                                </div>
+                                                {% endif %}
+                                                {% endfor %}
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Vehicles Group -->
+                                        <div class="category-group" id="vehicles-group">
+                                            <div class="row">
+                                                {% for idx, name in class_data %}
+                                                {% if name in ['bicycle', 'car', 'motorcycle', 'airplane', 'bus', 'train', 'truck', 'boat'] %}
+                                                <div class="col-md-4 col-sm-6 mb-2">
+                                                    <div class="form-check">
+                                                        <input class="form-check-input" type="checkbox" name="selected_classes[]" value="{{ idx }}" id="vehicles_{{ idx }}">
+                                                        <label class="form-check-label" for="vehicles_{{ idx }}">{{ name }}</label>
+                                                    </div>
+                                                </div>
+                                                {% endif %}
+                                                {% endfor %}
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Food & Drink Group -->
+                                        <div class="category-group" id="food-group">
+                                            <div class="row">
+                                                {% for idx, name in class_data %}
+                                                {% if name in ['banana', 'apple', 'sandwich', 'orange', 'broccoli', 'carrot', 'hot dog', 'pizza', 'donut', 'cake', 'bottle', 'wine glass', 'cup', 'fork', 'knife', 'spoon', 'bowl'] %}
+                                                <div class="col-md-4 col-sm-6 mb-2">
+                                                    <div class="form-check">
+                                                        <input class="form-check-input" type="checkbox" name="selected_classes[]" value="{{ idx }}" id="food_{{ idx }}">
+                                                        <label class="form-check-label" for="food_{{ idx }}">{{ name }}</label>
+                                                    </div>
+                                                </div>
+                                                {% endif %}
+                                                {% endfor %}
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Furniture & Household Group -->
+                                        <div class="category-group" id="furniture-group">
+                                            <div class="row">
+                                                {% for idx, name in class_data %}
+                                                {% if name in ['chair', 'couch', 'potted plant', 'bed', 'dining table', 'toilet', 'tv', 'microwave', 'oven', 'toaster', 'sink', 'refrigerator', 'vase', 'scissors'] %}
+                                                <div class="col-md-4 col-sm-6 mb-2">
+                                                    <div class="form-check">
+                                                        <input class="form-check-input" type="checkbox" name="selected_classes[]" value="{{ idx }}" id="furniture_{{ idx }}">
+                                                        <label class="form-check-label" for="furniture_{{ idx }}">{{ name }}</label>
+                                                    </div>
+                                                </div>
+                                                {% endif %}
+                                                {% endfor %}
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Electronics Group -->
+                                        <div class="category-group" id="electronics-group">
+                                            <div class="row">
+                                                {% for idx, name in class_data %}
+                                                {% if name in ['tv', 'laptop', 'mouse', 'remote', 'keyboard', 'cell phone', 'microwave', 'oven', 'toaster', 'refrigerator'] %}
+                                                <div class="col-md-4 col-sm-6 mb-2">
+                                                    <div class="form-check">
+                                                        <input class="form-check-input" type="checkbox" name="selected_classes[]" value="{{ idx }}" id="electronics_{{ idx }}">
+                                                        <label class="form-check-label" for="electronics_{{ idx }}">{{ name }}</label>
+                                                    </div>
+                                                </div>
+                                                {% endif %}
+                                                {% endfor %}
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Sports & Recreation Group -->
+                                        <div class="category-group" id="sports-group">
+                                            <div class="row">
+                                                {% for idx, name in class_data %}
+                                                {% if name in ['frisbee', 'skis', 'snowboard', 'sports ball', 'kite', 'baseball bat', 'baseball glove', 'skateboard', 'surfboard', 'tennis racket'] %}
+                                                <div class="col-md-4 col-sm-6 mb-2">
+                                                    <div class="form-check">
+                                                        <input class="form-check-input" type="checkbox" name="selected_classes[]" value="{{ idx }}" id="sports_{{ idx }}">
+                                                        <label class="form-check-label" for="sports_{{ idx }}">{{ name }}</label>
+                                                    </div>
+                                                </div>
+                                                {% endif %}
+                                                {% endfor %}
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Other Items Group -->
+                                        <div class="category-group" id="other-group">
+                                            <div class="row">
+                                                {% for idx, name in class_data %}
+                                                {% if name in ['traffic light', 'fire hydrant', 'stop sign', 'parking meter', 'bench', 'backpack', 'umbrella', 'handbag', 'tie', 'suitcase', 'book', 'clock', 'teddy bear', 'hair drier', 'toothbrush'] %}
+                                                <div class="col-md-4 col-sm-6 mb-2">
+                                                    <div class="form-check">
+                                                        <input class="form-check-input" type="checkbox" name="selected_classes[]" value="{{ idx }}" id="other_{{ idx }}">
+                                                        <label class="form-check-label" for="other_{{ idx }}">{{ name }}</label>
+                                                    </div>
+                                                </div>
+                                                {% endif %}
+                                                {% endfor %}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="d-grid mt-4">
+                                <button type="submit" class="btn btn-primary btn-lg" id="timelapse-btn" disabled>
+                                    <i class="fas fa-film me-2"></i>Create Time-lapse
+                                </button>
+                            </div>
+                        </form>
                     </div>
-                </form>
+                </div>
             </div>
         </div>
         
@@ -1028,7 +1487,184 @@
                     });
                 });
             });
+            
+            // Handle file uploads for comparison
+            document.getElementById('upload-box-1').addEventListener('click', function() {
+                document.getElementById('file1').click();
+            });
+            
+            document.getElementById('upload-box-2').addEventListener('click', function() {
+                document.getElementById('file2').click();
+            });
+            
+            document.getElementById('file1').addEventListener('change', function() {
+                const fileName = this.files[0] ? this.files[0].name : '';
+                const fileNameDiv = document.getElementById('file1-name');
+                
+                if (fileName) {
+                    fileNameDiv.textContent = fileName;
+                    fileNameDiv.classList.remove('d-none');
+                    checkCompareButtonState();
+                } else {
+                    fileNameDiv.classList.add('d-none');
+                }
+            });
+            
+            document.getElementById('file2').addEventListener('change', function() {
+                const fileName = this.files[0] ? this.files[0].name : '';
+                const fileNameDiv = document.getElementById('file2-name');
+                
+                if (fileName) {
+                    fileNameDiv.textContent = fileName;
+                    fileNameDiv.classList.remove('d-none');
+                    checkCompareButtonState();
+                } else {
+                    fileNameDiv.classList.add('d-none');
+                }
+            });
+            
+            // Update threshold value display for compare tab
+            document.getElementById('threshold-compare').addEventListener('input', function() {
+                document.getElementById('threshold-value-compare').textContent = this.value;
+            });
+            
+            function checkCompareButtonState() {
+                const file1 = document.getElementById('file1').files[0];
+                const file2 = document.getElementById('file2').files[0];
+                document.getElementById('compare-btn').disabled = !(file1 && file2);
+            }
+            
+            // Add drag-and-drop for comparison uploads
+            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                document.getElementById('upload-box-1').addEventListener(eventName, preventDefaults, false);
+                document.getElementById('upload-box-2').addEventListener(eventName, preventDefaults, false);
+            });
+            
+            ['dragenter', 'dragover'].forEach(eventName => {
+                document.getElementById('upload-box-1').addEventListener(eventName, function() {
+                    this.classList.add('border-primary');
+                }, false);
+                document.getElementById('upload-box-2').addEventListener(eventName, function() {
+                    this.classList.add('border-primary');
+                }, false);
+            });
+            
+            ['dragleave', 'drop'].forEach(eventName => {
+                document.getElementById('upload-box-1').addEventListener(eventName, function() {
+                    this.classList.remove('border-primary');
+                }, false);
+                document.getElementById('upload-box-2').addEventListener(eventName, function() {
+                    this.classList.remove('border-primary');
+                }, false);
+            });
+            
+            document.getElementById('upload-box-1').addEventListener('drop', function(e) {
+                const dt = e.dataTransfer;
+                const files = dt.files;
+                if (files.length > 0) {
+                    document.getElementById('file1').files = files;
+                    const fileName = files[0].name;
+                    const fileNameDiv = document.getElementById('file1-name');
+                    fileNameDiv.textContent = fileName;
+                    fileNameDiv.classList.remove('d-none');
+                    checkCompareButtonState();
+                }
+            }, false);
+            
+            document.getElementById('upload-box-2').addEventListener('drop', function(e) {
+                const dt = e.dataTransfer;
+                const files = dt.files;
+                if (files.length > 0) {
+                    document.getElementById('file2').files = files;
+                    const fileName = files[0].name;
+                    const fileNameDiv = document.getElementById('file2-name');
+                    fileNameDiv.textContent = fileName;
+                    fileNameDiv.classList.remove('d-none');
+                    checkCompareButtonState();
+                }
+            }, false);
         });
+
+        // Timelapse upload
+        document.getElementById('timelapse-upload-box').addEventListener('click', function() {
+            document.getElementById('timelapse-files').click();
+        });
+
+        document.getElementById('timelapse-files').addEventListener('change', function() {
+            const files = this.files;
+            const fileNameDiv = document.getElementById('timelapse-file-names');
+            fileNameDiv.innerHTML = '';
+            
+            if (files.length > 0) {
+                const fileList = document.createElement('div');
+                fileList.classList.add('file-list');
+                
+                // Create header
+                const header = document.createElement('div');
+                header.classList.add('alert', 'alert-info', 'mb-2');
+                header.innerHTML = `<i class="fas fa-info-circle me-2"></i>Selected ${files.length} images for time-lapse`;
+                fileNameDiv.appendChild(header);
+                
+                // Create a scrollable list of files
+                const fileListContainer = document.createElement('div');
+                fileListContainer.style.maxHeight = '200px';
+                fileListContainer.style.overflowY = 'auto';
+                fileListContainer.style.border = '1px solid #ddd';
+                fileListContainer.style.borderRadius = '8px';
+                fileListContainer.style.padding = '10px';
+                
+                // Sort files alphabetically
+                const fileNamesArray = Array.from(files).map(file => file.name);
+                fileNamesArray.sort();
+                
+                // Add files to list
+                for (let i = 0; i < fileNamesArray.length; i++) {
+                    const fileName = fileNamesArray[i];
+                    const fileItem = document.createElement('div');
+                    fileItem.classList.add('mb-1', 'ps-2', 'border-bottom', 'pb-1');
+                    fileItem.innerHTML = `<i class="fas fa-image me-2"></i><span>${i + 1}.</span> ${fileName}`;
+                    fileListContainer.appendChild(fileItem);
+                }
+                
+                fileNameDiv.appendChild(fileListContainer);
+                document.getElementById('timelapse-btn').disabled = false;
+            } else {
+                fileNameDiv.innerHTML = '';
+                document.getElementById('timelapse-btn').disabled = true;
+            }
+        });
+
+        // Update threshold value display for timelapse tab
+        document.getElementById('threshold-timelapse').addEventListener('input', function() {
+            document.getElementById('threshold-value-timelapse').textContent = this.value;
+        });
+
+        // Add drag-and-drop for timelapse uploads
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            document.getElementById('timelapse-upload-box').addEventListener(eventName, preventDefaults, false);
+        });
+
+        ['dragenter', 'dragover'].forEach(eventName => {
+            document.getElementById('timelapse-upload-box').addEventListener(eventName, function() {
+                this.classList.add('border-primary');
+            }, false);
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            document.getElementById('timelapse-upload-box').addEventListener(eventName, function() {
+                this.classList.remove('border-primary');
+            }, false);
+        });
+
+        document.getElementById('timelapse-upload-box').addEventListener('drop', function(e) {
+            const dt = e.dataTransfer;
+            const files = dt.files;
+            document.getElementById('timelapse-files').files = files;
+            
+            // Trigger the change event
+            const event = new Event('change');
+            document.getElementById('timelapse-files').dispatchEvent(event);
+        }, false);
     </script>
 </body>
 </html> 

@@ -7,7 +7,7 @@ import torchvision
 import logging
 import subprocess
 from torchvision.transforms import functional as F
-from flask import Flask, render_template, request, redirect, url_for, flash, send_from_directory, Response, jsonify
+from flask import Flask, render_template, request, redirect, url_for, flash, send_from_directory, Response, jsonify, session
 from werkzeug.utils import secure_filename
 from flask_socketio import SocketIO, emit
 import base64
@@ -97,6 +97,19 @@ COCO_CLASSES = [
 # Create a list of valid class indices (excluding N/A classes)
 VALID_CLASS_INDICES = [idx for idx, name in enumerate(COCO_CLASSES) if name != 'N/A' and name != '__background__']
 VALID_CLASS_NAMES = [name for name in COCO_CLASSES if name != 'N/A' and name != '__background__']
+
+# Add essential Python functions to the template environment
+app.jinja_env.globals.update(
+    max=max,
+    min=min,
+    abs=abs,
+    round=round,
+    len=len,
+    sum=sum,
+    int=int,
+    float=float,
+    str=str
+)
 
 def allowed_file(filename):
     return '.' in filename and \
@@ -1413,6 +1426,361 @@ def answer_question(filename):
         return jsonify({
             'error': str(e)
         })
+
+@app.route('/compare_images', methods=['POST'])
+def compare_images():
+    if 'file1' not in request.files or 'file2' not in request.files:
+        flash('Two files are required for comparison')
+        return redirect(url_for('index'))
+    
+    file1 = request.files['file1']
+    file2 = request.files['file2']
+    threshold = float(request.form.get('threshold', 0.7))
+    selected_classes = request.form.getlist('selected_classes[]')
+    
+    # If no classes selected, process all valid classes
+    if not selected_classes:
+        selected_classes = None
+        selected_class_names = VALID_CLASS_NAMES
+        filtered_classes = False
+    else:
+        # Get class names for the selected classes
+        selected_class_names = [COCO_CLASSES[int(cls)] for cls in selected_classes 
+                              if cls.isdigit() and int(cls) < len(COCO_CLASSES) 
+                              and COCO_CLASSES[int(cls)] != 'N/A']
+        filtered_classes = True
+    
+    if file1.filename == '' or file2.filename == '':
+        flash('Two files must be selected')
+        return redirect(url_for('index'))
+    
+    if (file1 and allowed_file(file1.filename) and 
+        file2 and allowed_file(file2.filename)):
+        
+        # Check if both are images
+        filename1 = secure_filename(file1.filename)
+        filename2 = secure_filename(file2.filename)
+        
+        file1_ext = filename1.rsplit('.', 1)[1].lower()
+        file2_ext = filename2.rsplit('.', 1)[1].lower()
+        
+        if file1_ext not in {'png', 'jpg', 'jpeg'} or file2_ext not in {'png', 'jpg', 'jpeg'}:
+            flash('Both files must be images for comparison')
+            return redirect(url_for('index'))
+        
+        # Save the uploaded files
+        file1_path = os.path.join(app.config['UPLOAD_FOLDER'], filename1)
+        file2_path = os.path.join(app.config['UPLOAD_FOLDER'], filename2)
+        file1.save(file1_path)
+        file2.save(file2_path)
+        
+        # Process both images
+        start_time = time.time()
+        
+        # Process first image with GPU acceleration
+        output_image1, detected_objects1, inference_time1 = process_image(file1_path, threshold, selected_classes)
+        
+        # Process second image with GPU acceleration
+        output_image2, detected_objects2, inference_time2 = process_image(file2_path, threshold, selected_classes)
+        
+        # Calculate total processing time
+        processing_time = round(time.time() - start_time, 2)
+        
+        # Save the processed images
+        output_filename1 = f"processed_{filename1}"
+        output_filename2 = f"processed_{filename2}"
+        output_path1 = os.path.join(app.config['RESULT_FOLDER'], output_filename1)
+        output_path2 = os.path.join(app.config['RESULT_FOLDER'], output_filename2)
+        cv2.imwrite(output_path1, output_image1)
+        cv2.imwrite(output_path2, output_image2)
+        
+        # Calculate total objects in each image
+        total_objects1 = sum(detected_objects1.values()) if detected_objects1 else 0
+        total_objects2 = sum(detected_objects2.values()) if detected_objects2 else 0
+        
+        # Create a set of all detected object classes
+        all_classes = set(list(detected_objects1.keys()) + list(detected_objects2.keys()))
+        
+        # Create comparison data
+        comparison_data = []
+        for class_name in all_classes:
+            count1 = detected_objects1.get(class_name, 0)
+            count2 = detected_objects2.get(class_name, 0)
+            difference = count2 - count1  # Positive means more in image 2
+            comparison_data.append({
+                'class': class_name,
+                'count1': count1,
+                'count2': count2,
+                'difference': difference,
+                'percent_change': round((difference / max(count1, 1)) * 100, 1)
+            })
+        
+        # Sort by absolute difference (descending)
+        comparison_data.sort(key=lambda x: abs(x['difference']), reverse=True)
+        
+        # Generate a comparison image - use GPU if possible via CUDA acceleration
+        # Read images in RGB format for better visualization
+        img1 = cv2.imread(file1_path)
+        img2 = cv2.imread(file2_path)
+        
+        # Resize images to have the same height
+        target_height = 480
+        aspect_ratio1 = img1.shape[1] / img1.shape[0]
+        aspect_ratio2 = img2.shape[1] / img2.shape[0]
+        
+        img1_resized = cv2.resize(img1, (int(target_height * aspect_ratio1), target_height))
+        img2_resized = cv2.resize(img2, (int(target_height * aspect_ratio2), target_height))
+        
+        # Create a side-by-side comparison
+        comparison_img = np.zeros((target_height, img1_resized.shape[1] + img2_resized.shape[1] + 20, 3), dtype=np.uint8)
+        comparison_img[:, :img1_resized.shape[1]] = img1_resized
+        comparison_img[:, img1_resized.shape[1] + 20:] = img2_resized
+        
+        # Add a vertical separator
+        comparison_img[:, img1_resized.shape[1]:img1_resized.shape[1] + 20] = [255, 255, 255]
+        
+        # Save the comparison image
+        comparison_filename = f"comparison_{filename1.split('.')[0]}_{filename2.split('.')[0]}.jpg"
+        comparison_path = os.path.join(app.config['RESULT_FOLDER'], comparison_filename)
+        cv2.imwrite(comparison_path, comparison_img)
+        
+        # Add GPU performance metrics
+        gpu_metrics = {
+            'device': str(device),
+            'inference_time1': round(inference_time1 * 1000, 2),  # Convert to milliseconds
+            'inference_time2': round(inference_time2 * 1000, 2),  # Convert to milliseconds
+            'fps1': round(1 / inference_time1, 1) if inference_time1 > 0 else 0,
+            'fps2': round(1 / inference_time2, 1) if inference_time2 > 0 else 0,
+            'total_time': processing_time
+        }
+        
+        return render_template('comparison_result.html',
+                              file1=filename1,
+                              file2=filename2,
+                              processed_file1=output_filename1,
+                              processed_file2=output_filename2,
+                              comparison_file=comparison_filename,
+                              class_counts1=detected_objects1,
+                              class_counts2=detected_objects2,
+                              total_objects1=total_objects1,
+                              total_objects2=total_objects2,
+                              comparison_data=comparison_data,
+                              threshold=threshold,
+                              selected_classes=selected_class_names,
+                              processing_time=processing_time,
+                              gpu_metrics=gpu_metrics)
+    
+    flash('Invalid file types')
+    return redirect(url_for('index'))
+
+@app.route('/create_timelapse', methods=['POST'])
+def create_timelapse():
+    if 'files[]' not in request.files:
+        flash('No files uploaded')
+        return redirect(url_for('index'))
+    
+    files = request.files.getlist('files[]')
+    threshold = float(request.form.get('threshold', 0.7))
+    selected_classes = request.form.getlist('selected_classes[]')
+    fps = int(request.form.get('fps', 2))  # Default 2 frames per second
+    
+    # Validate FPS is between 1 and 30
+    fps = max(1, min(fps, 30))
+    
+    # If no classes selected, process all valid classes
+    if not selected_classes:
+        selected_classes = None
+        selected_class_names = VALID_CLASS_NAMES
+        filtered_classes = False
+    else:
+        # Get class names for the selected classes
+        selected_class_names = [COCO_CLASSES[int(cls)] for cls in selected_classes 
+                              if cls.isdigit() and int(cls) < len(COCO_CLASSES) 
+                              and COCO_CLASSES[int(cls)] != 'N/A']
+        filtered_classes = True
+    
+    # Check if any files were uploaded
+    if len(files) == 0 or files[0].filename == '':
+        flash('No files selected')
+        return redirect(url_for('index'))
+    
+    # Create a unique identifier for this batch
+    batch_id = f"timelapse_{int(time.time())}"
+    
+    # Create a temporary directory for the processed images
+    temp_dir = os.path.join(app.config['RESULT_FOLDER'], batch_id)
+    os.makedirs(temp_dir, exist_ok=True)
+    
+    # Track object counts over time
+    time_series_data = {}
+    processed_filenames = []
+    original_filenames = []
+    
+    # For calculating average inference time metrics
+    total_inference_time = 0
+    
+    # Process each image with GPU acceleration
+    start_time = time.time()
+    for i, file in enumerate(files):
+        if file and allowed_file(file.filename):
+            # Only process image files
+            filename = secure_filename(file.filename)
+            file_extension = filename.rsplit('.', 1)[1].lower()
+            
+            if file_extension not in {'png', 'jpg', 'jpeg'}:
+                continue
+                
+            file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+            file.save(file_path)
+            
+            # Process the image with GPU acceleration
+            output_image, detected_objects, inference_time = process_image(file_path, threshold, selected_classes)
+            total_inference_time += inference_time
+            
+            # Save the processed image to the temp directory with a sequence number
+            seq_filename = f"{i:04d}_{filename}"
+            output_path = os.path.join(temp_dir, seq_filename)
+            cv2.imwrite(output_path, output_image)
+            
+            # Store the filename for reference
+            processed_filenames.append(seq_filename)
+            original_filenames.append(filename)
+            
+            # Store the object counts for this frame
+            time_series_data[i] = {
+                'filename': filename,
+                'objects': detected_objects,
+                'total': sum(detected_objects.values()) if detected_objects else 0,
+                'inference_time': inference_time * 1000  # Convert to milliseconds
+            }
+    
+    processing_time = round(time.time() - start_time, 2)
+    
+    # Generate a video from the sequence of images
+    if processed_filenames:
+        # Define video properties
+        first_img = cv2.imread(os.path.join(temp_dir, processed_filenames[0]))
+        height, width, _ = first_img.shape
+        
+        # Create the output video file
+        video_filename = f"{batch_id}.mp4"
+        video_path = os.path.join(app.config['RESULT_FOLDER'], video_filename)
+        
+        # Try different codecs in order of preference
+        video = None
+        codec_attempts = []
+        
+        # First try avc1 (H.264) which has better browser compatibility
+        if torch.cuda.is_available():
+            logger.info("Using GPU acceleration for video encoding")
+            codec_attempts = ['avc1', 'mp4v', 'XVID']
+        else:
+            codec_attempts = ['mp4v', 'avc1', 'XVID']
+            
+        # Try each codec until one works
+        for codec in codec_attempts:
+            try:
+                logger.info(f"Attempting to create video with codec: {codec}")
+                fourcc = cv2.VideoWriter_fourcc(*codec)
+                video = cv2.VideoWriter(video_path, fourcc, fps, (width, height))
+                
+                if video.isOpened():
+                    logger.info(f"Successfully opened VideoWriter with codec: {codec}")
+                    break
+                else:
+                    video.release()
+                    video = None
+            except Exception as e:
+                logger.warning(f"Failed to create video with codec {codec}: {str(e)}")
+                video = None
+        
+        # If all codecs failed, try one last fallback
+        if video is None or not video.isOpened():
+            logger.warning("All standard codecs failed, using MJPG as last resort")
+            try:
+                fourcc = cv2.VideoWriter_fourcc(*'MJPG')
+                video_path = os.path.join(app.config['RESULT_FOLDER'], f"{batch_id}.avi")
+                video = cv2.VideoWriter(video_path, fourcc, fps, (width, height))
+                video_filename = f"{batch_id}.avi"
+            except Exception as e:
+                logger.error(f"Final codec attempt failed: {str(e)}")
+                flash("Failed to create video output. Please try again.")
+                return redirect(url_for('index'))
+        
+        # Add each image to the video
+        for filename in processed_filenames:
+            img = cv2.imread(os.path.join(temp_dir, filename))
+            if img is not None:
+                video.write(img)
+            else:
+                logger.warning(f"Could not read image for video: {filename}")
+        
+        # Release the video writer
+        if video is not None:
+            video.release()
+        
+        # Convert to web-compatible format
+        web_video_path = convert_video_for_web(video_path)
+        if web_video_path:
+            video_filename = os.path.basename(web_video_path)
+            
+        # Calculate object trends
+        all_classes = set()
+        for frame_data in time_series_data.values():
+            all_classes.update(frame_data['objects'].keys())
+        
+        # Build time series for each class
+        trends = {}
+        for obj_class in all_classes:
+            trends[obj_class] = [frame_data['objects'].get(obj_class, 0) for frame_data in time_series_data.values()]
+        
+        # Calculate total objects across all frames
+        total_trend = [frame_data['total'] for frame_data in time_series_data.values()]
+        
+        # Calculate inference times across frames
+        inference_times = [frame_data['inference_time'] for frame_data in time_series_data.values()]
+        
+        # Sort trends by total counts (descending)
+        trends = {k: v for k, v in sorted(trends.items(), 
+                                          key=lambda item: sum(item[1]), 
+                                          reverse=True)}
+        
+        # Add GPU performance metrics
+        gpu_metrics = {
+            'device': str(device),
+            'available': torch.cuda.is_available(),
+            'name': torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'N/A',
+            'avg_inference_time': round((total_inference_time / len(processed_filenames)) * 1000, 2),  # ms
+            'avg_fps': round(len(processed_filenames) / total_inference_time, 1),
+            'total_time': processing_time
+        }
+        
+        # Fix for JSON serialization issues
+        original_filenames_list = list(original_filenames)  # Ensure it's a list
+        
+        # Use a dictionary to pass all template variables, with fallbacks for any that might be missing
+        template_data = {
+            'video_file': video_filename,
+            'processed_files': processed_filenames,
+            'frame_count': len(processed_filenames),
+            'fps': fps,
+            'duration': len(processed_filenames)/fps,
+            'threshold': threshold,
+            'selected_classes': selected_class_names,
+            'processing_time': processing_time,
+            'time_series': time_series_data,
+            'trends': trends,
+            'total_trend': total_trend,
+            'inference_times': inference_times,
+            'batch_id': batch_id,
+            'gpu_metrics': gpu_metrics,
+            # Don't include original_filenames in template data to avoid serialization issues
+        }
+        
+        return render_template('timelapse_result.html', **template_data)
+    else:
+        flash('No valid image files were found')
+        return redirect(url_for('index'))
 
 if __name__ == '__main__':
     logger.info(f"Starting server with device: {device}")

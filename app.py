@@ -1230,5 +1230,281 @@ def answer_question(filename):
             'error': str(e)
         })
 
+@app.route('/compare_images', methods=['POST'])
+def compare_images():
+    if 'file1' not in request.files or 'file2' not in request.files:
+        flash('Two files are required for comparison')
+        return redirect(url_for('index'))
+    
+    file1 = request.files['file1']
+    file2 = request.files['file2']
+    threshold = float(request.form.get('threshold', 0.7))
+    selected_classes = request.form.getlist('selected_classes[]')
+    
+    # If no classes selected, process all valid classes
+    if not selected_classes:
+        selected_classes = None
+        selected_class_names = VALID_CLASS_NAMES
+        filtered_classes = False
+    else:
+        # Get class names for the selected classes
+        selected_class_names = [COCO_CLASSES[int(cls)] for cls in selected_classes 
+                              if cls.isdigit() and int(cls) < len(COCO_CLASSES) 
+                              and COCO_CLASSES[int(cls)] != 'N/A']
+        filtered_classes = True
+    
+    if file1.filename == '' or file2.filename == '':
+        flash('Two files must be selected')
+        return redirect(url_for('index'))
+    
+    if (file1 and allowed_file(file1.filename) and 
+        file2 and allowed_file(file2.filename)):
+        
+        # Check if both are images
+        filename1 = secure_filename(file1.filename)
+        filename2 = secure_filename(file2.filename)
+        
+        file1_ext = filename1.rsplit('.', 1)[1].lower()
+        file2_ext = filename2.rsplit('.', 1)[1].lower()
+        
+        if file1_ext not in {'png', 'jpg', 'jpeg'} or file2_ext not in {'png', 'jpg', 'jpeg'}:
+            flash('Both files must be images for comparison')
+            return redirect(url_for('index'))
+        
+        # Save the uploaded files
+        file1_path = os.path.join(app.config['UPLOAD_FOLDER'], filename1)
+        file2_path = os.path.join(app.config['UPLOAD_FOLDER'], filename2)
+        file1.save(file1_path)
+        file2.save(file2_path)
+        
+        # Process both images
+        start_time = time.time()
+        
+        # Process first image
+        output_image1, detected_objects1 = process_image(file1_path, threshold, selected_classes)
+        
+        # Process second image
+        output_image2, detected_objects2 = process_image(file2_path, threshold, selected_classes)
+        
+        # Calculate processing time
+        processing_time = round(time.time() - start_time, 2)
+        
+        # Save the processed images
+        output_filename1 = f"processed_{filename1}"
+        output_filename2 = f"processed_{filename2}"
+        output_path1 = os.path.join(app.config['RESULT_FOLDER'], output_filename1)
+        output_path2 = os.path.join(app.config['RESULT_FOLDER'], output_filename2)
+        cv2.imwrite(output_path1, output_image1)
+        cv2.imwrite(output_path2, output_image2)
+        
+        # Calculate total objects in each image
+        total_objects1 = sum(detected_objects1.values()) if detected_objects1 else 0
+        total_objects2 = sum(detected_objects2.values()) if detected_objects2 else 0
+        
+        # Create a set of all detected object classes
+        all_classes = set(list(detected_objects1.keys()) + list(detected_objects2.keys()))
+        
+        # Create comparison data
+        comparison_data = []
+        for class_name in all_classes:
+            count1 = detected_objects1.get(class_name, 0)
+            count2 = detected_objects2.get(class_name, 0)
+            difference = count2 - count1  # Positive means more in image 2
+            comparison_data.append({
+                'class': class_name,
+                'count1': count1,
+                'count2': count2,
+                'difference': difference,
+                'percent_change': round((difference / max(count1, 1)) * 100, 1)
+            })
+        
+        # Sort by absolute difference (descending)
+        comparison_data.sort(key=lambda x: abs(x['difference']), reverse=True)
+        
+        # Generate a comparison image
+        # Read images in RGB format for better visualization
+        img1 = cv2.imread(file1_path)
+        img2 = cv2.imread(file2_path)
+        
+        # Resize images to have the same height
+        target_height = 480
+        aspect_ratio1 = img1.shape[1] / img1.shape[0]
+        aspect_ratio2 = img2.shape[1] / img2.shape[0]
+        
+        img1_resized = cv2.resize(img1, (int(target_height * aspect_ratio1), target_height))
+        img2_resized = cv2.resize(img2, (int(target_height * aspect_ratio2), target_height))
+        
+        # Create a side-by-side comparison
+        comparison_img = np.zeros((target_height, img1_resized.shape[1] + img2_resized.shape[1] + 20, 3), dtype=np.uint8)
+        comparison_img[:, :img1_resized.shape[1]] = img1_resized
+        comparison_img[:, img1_resized.shape[1] + 20:] = img2_resized
+        
+        # Add a vertical separator
+        comparison_img[:, img1_resized.shape[1]:img1_resized.shape[1] + 20] = [255, 255, 255]
+        
+        # Save the comparison image
+        comparison_filename = f"comparison_{filename1.split('.')[0]}_{filename2.split('.')[0]}.jpg"
+        comparison_path = os.path.join(app.config['RESULT_FOLDER'], comparison_filename)
+        cv2.imwrite(comparison_path, comparison_img)
+        
+        return render_template('comparison_result.html',
+                              file1=filename1,
+                              file2=filename2,
+                              processed_file1=output_filename1,
+                              processed_file2=output_filename2,
+                              comparison_file=comparison_filename,
+                              class_counts1=detected_objects1,
+                              class_counts2=detected_objects2,
+                              total_objects1=total_objects1,
+                              total_objects2=total_objects2,
+                              comparison_data=comparison_data,
+                              threshold=threshold,
+                              selected_classes=selected_class_names,
+                              processing_time=processing_time)
+    
+    flash('Invalid file types')
+    return redirect(url_for('index'))
+
+@app.route('/create_timelapse', methods=['POST'])
+def create_timelapse():
+    if 'files[]' not in request.files:
+        flash('No files uploaded')
+        return redirect(url_for('index'))
+    
+    files = request.files.getlist('files[]')
+    threshold = float(request.form.get('threshold', 0.7))
+    selected_classes = request.form.getlist('selected_classes[]')
+    fps = int(request.form.get('fps', 2))  # Default 2 frames per second
+    
+    # Validate FPS is between 1 and 30
+    fps = max(1, min(fps, 30))
+    
+    # If no classes selected, process all valid classes
+    if not selected_classes:
+        selected_classes = None
+        selected_class_names = VALID_CLASS_NAMES
+        filtered_classes = False
+    else:
+        # Get class names for the selected classes
+        selected_class_names = [COCO_CLASSES[int(cls)] for cls in selected_classes 
+                              if cls.isdigit() and int(cls) < len(COCO_CLASSES) 
+                              and COCO_CLASSES[int(cls)] != 'N/A']
+        filtered_classes = True
+    
+    # Check if any files were uploaded
+    if len(files) == 0 or files[0].filename == '':
+        flash('No files selected')
+        return redirect(url_for('index'))
+    
+    # Create a unique identifier for this batch
+    batch_id = f"timelapse_{int(time.time())}"
+    
+    # Create a temporary directory for the processed images
+    temp_dir = os.path.join(app.config['RESULT_FOLDER'], batch_id)
+    os.makedirs(temp_dir, exist_ok=True)
+    
+    # Track object counts over time
+    time_series_data = {}
+    processed_filenames = []
+    original_filenames = []
+    
+    # Process each image
+    start_time = time.time()
+    for i, file in enumerate(files):
+        if file and allowed_file(file.filename):
+            # Only process image files
+            filename = secure_filename(file.filename)
+            file_extension = filename.rsplit('.', 1)[1].lower()
+            
+            if file_extension not in {'png', 'jpg', 'jpeg'}:
+                continue
+                
+            file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+            file.save(file_path)
+            
+            # Process the image
+            output_image, detected_objects = process_image(file_path, threshold, selected_classes)
+            
+            # Save the processed image to the temp directory with a sequence number
+            seq_filename = f"{i:04d}_{filename}"
+            output_path = os.path.join(temp_dir, seq_filename)
+            cv2.imwrite(output_path, output_image)
+            
+            # Store the filename for reference
+            processed_filenames.append(seq_filename)
+            original_filenames.append(filename)
+            
+            # Store the object counts for this frame
+            time_series_data[i] = {
+                'filename': filename,
+                'objects': detected_objects,
+                'total': sum(detected_objects.values()) if detected_objects else 0
+            }
+    
+    processing_time = round(time.time() - start_time, 2)
+    
+    # Generate a video from the sequence of images
+    if processed_filenames:
+        # Define video properties
+        first_img = cv2.imread(os.path.join(temp_dir, processed_filenames[0]))
+        height, width, _ = first_img.shape
+        
+        # Create the output video file
+        video_filename = f"{batch_id}.mp4"
+        video_path = os.path.join(app.config['RESULT_FOLDER'], video_filename)
+        
+        # Use OpenCV VideoWriter to create the video
+        fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+        video = cv2.VideoWriter(video_path, fourcc, fps, (width, height))
+        
+        # Add each image to the video
+        for filename in processed_filenames:
+            img = cv2.imread(os.path.join(temp_dir, filename))
+            video.write(img)
+        
+        # Release the video writer
+        video.release()
+        
+        # Convert to web-compatible format
+        web_video_path = convert_video_for_web(video_path)
+        if web_video_path:
+            video_filename = os.path.basename(web_video_path)
+            
+        # Calculate object trends
+        all_classes = set()
+        for frame_data in time_series_data.values():
+            all_classes.update(frame_data['objects'].keys())
+        
+        # Build time series for each class
+        trends = {}
+        for obj_class in all_classes:
+            trends[obj_class] = [frame_data['objects'].get(obj_class, 0) for frame_data in time_series_data.values()]
+        
+        # Calculate total objects across all frames
+        total_trend = [frame_data['total'] for frame_data in time_series_data.values()]
+        
+        # Sort trends by total counts (descending)
+        trends = {k: v for k, v in sorted(trends.items(), 
+                                          key=lambda item: sum(item[1]), 
+                                          reverse=True)}
+        
+        return render_template('timelapse_result.html',
+                              video_file=video_filename,
+                              original_files=original_filenames,
+                              processed_files=processed_filenames,
+                              frame_count=len(processed_filenames),
+                              fps=fps,
+                              duration=len(processed_filenames)/fps,
+                              threshold=threshold,
+                              selected_classes=selected_class_names,
+                              processing_time=processing_time,
+                              time_series=time_series_data,
+                              trends=trends,
+                              total_trend=total_trend,
+                              batch_id=batch_id)
+    else:
+        flash('No valid image files were found')
+        return redirect(url_for('index'))
+
 if __name__ == '__main__':
     socketio.run(app, debug=True) 

@@ -1,0 +1,760 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Time-lapse Video - Mask R-CNN</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --primary-color: #4361ee;
+            --primary-hover: #3a56d4;
+            --secondary-color: #3f37c9;
+            --accent-color: #4895ef;
+            --light-accent: rgba(67, 97, 238, 0.1);
+            --success-color: #2ecc71;
+            --warning-color: #f39c12;
+            --danger-color: #e74c3c;
+            --text-color: #333;
+            --text-secondary: #6c757d;
+            --bg-color: #f8f9fa;
+            --card-bg: #ffffff;
+            --border-radius: 16px;
+            --box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
+            --transition: all 0.3s ease;
+        }
+        
+        body {
+            padding: 3rem 0;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 1200px;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 3rem;
+            position: relative;
+        }
+        
+        .header h1 {
+            font-weight: 700;
+            color: var(--primary-color);
+            margin-bottom: 0.75rem;
+            font-size: 2.5rem;
+        }
+        
+        .header .lead {
+            font-size: 1.2rem;
+            color: var(--text-secondary);
+            max-width: 80%;
+            margin: 0 auto;
+        }
+        
+        .header:after {
+            content: '';
+            position: absolute;
+            bottom: -15px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 80px;
+            height: 4px;
+            background: linear-gradient(90deg, var(--primary-color), var(--accent-color));
+            border-radius: 2px;
+        }
+        
+        .card {
+            border: none;
+            border-radius: var(--border-radius);
+            box-shadow: var(--box-shadow);
+            margin-bottom: 2.5rem;
+            overflow: hidden;
+            transition: var(--transition);
+        }
+        
+        .card:hover {
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+            transform: translateY(-3px);
+        }
+        
+        .card-header {
+            background: linear-gradient(90deg, var(--primary-color), var(--accent-color));
+            color: white;
+            font-weight: 600;
+            padding: 1.25rem 1.5rem;
+            border-bottom: none;
+            font-size: 1.2rem;
+        }
+        
+        .card-header i {
+            margin-right: 10px;
+        }
+        
+        .card-body {
+            padding: 2rem;
+        }
+        
+        .result-video-container {
+            position: relative;
+            text-align: center;
+            margin: 1.5rem 0;
+            border-radius: var(--border-radius);
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            transition: var(--transition);
+        }
+        
+        .result-video-container:hover {
+            transform: scale(1.02);
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.15);
+        }
+        
+        .result-video {
+            max-width: 100%;
+            border-radius: var(--border-radius);
+        }
+        
+        .btn {
+            font-weight: 600;
+            padding: 0.75rem 1.5rem;
+            border-radius: 30px;
+            transition: var(--transition);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-size: 0.9rem;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(90deg, var(--primary-color), var(--accent-color));
+            border: none;
+            box-shadow: 0 5px 15px rgba(67, 97, 238, 0.3);
+        }
+        
+        .btn-primary:hover {
+            background: linear-gradient(90deg, var(--accent-color), var(--primary-color));
+            transform: translateY(-3px);
+            box-shadow: 0 10px 25px rgba(67, 97, 238, 0.4);
+        }
+        
+        .actions-container {
+            display: flex;
+            gap: 1rem;
+            margin-top: 2.5rem;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        
+        .summary-card {
+            background-color: var(--light-accent);
+            border-radius: var(--border-radius);
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        
+        .summary-card h4 {
+            color: var(--primary-color);
+            font-weight: 600;
+            margin-bottom: 1.25rem;
+            font-size: 1.3rem;
+            border-bottom: 2px solid rgba(67, 97, 238, 0.2);
+            padding-bottom: 0.75rem;
+        }
+        
+        .summary-stat {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+        }
+        
+        .summary-stat:last-child {
+            margin-bottom: 0;
+            padding-bottom: 0;
+            border-bottom: none;
+        }
+        
+        .summary-label {
+            font-weight: 600;
+            color: var(--text-color);
+        }
+        
+        .summary-value {
+            font-weight: 500;
+            color: var(--text-secondary);
+        }
+        
+        .badge-count {
+            background: linear-gradient(90deg, var(--accent-color), var(--primary-color));
+            color: white;
+            border-radius: 30px;
+            padding: 0.35rem 1rem;
+            font-weight: 600;
+            font-size: 0.9rem;
+            min-width: 50px;
+            text-align: center;
+        }
+        
+        .chart-container {
+            position: relative;
+            height: 400px;
+            margin: 2rem 0;
+        }
+        
+        .chart-legend {
+            margin-top: 1.5rem;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            justify-content: center;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin-right: 1rem;
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+        
+        .legend-color {
+            width: 15px;
+            height: 15px;
+            border-radius: 50%;
+            margin-right: 5px;
+        }
+        
+        .thumbnail-gallery {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+            gap: 10px;
+            margin: 1.5rem 0;
+        }
+        
+        .thumbnail {
+            border-radius: 8px;
+            overflow: hidden;
+            cursor: pointer;
+            transition: transform 0.2s;
+            position: relative;
+        }
+        
+        .thumbnail:hover {
+            transform: scale(1.05);
+        }
+        
+        .thumbnail img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .thumbnail .frame-number {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(0, 0, 0, 0.6);
+            color: white;
+            font-size: 0.7rem;
+            text-align: center;
+            padding: 2px 0;
+        }
+        
+        @media (max-width: 768px) {
+            .actions-container {
+                flex-direction: column;
+                width: 100%;
+            }
+            
+            .btn {
+                width: 100%;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .summary-stat {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            
+            .summary-value {
+                margin-top: 0.25rem;
+                margin-left: 1.75rem;
+            }
+            
+            .thumbnail-gallery {
+                grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+            }
+        }
+        
+        .gpu-badge {
+            display: inline-flex;
+            align-items: center;
+            margin-top: 1rem;
+            padding: 0.5rem 1.25rem;
+            background: linear-gradient(90deg, #ff9500, #ff3800);
+            color: white;
+            font-weight: 600;
+            border-radius: 30px;
+            box-shadow: 0 5px 15px rgba(255, 120, 0, 0.3);
+            animation: pulse 2s infinite;
+        }
+        
+        .gpu-badge i {
+            margin-right: 8px;
+            animation: bolt 1.5s infinite;
+        }
+        
+        @keyframes pulse {
+            0% {
+                box-shadow: 0 5px 15px rgba(255, 120, 0, 0.3);
+            }
+            50% {
+                box-shadow: 0 5px 20px rgba(255, 120, 0, 0.6);
+            }
+            100% {
+                box-shadow: 0 5px 15px rgba(255, 120, 0, 0.3);
+            }
+        }
+        
+        @keyframes bolt {
+            0%, 100% {
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(1.2);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Time-lapse Video Created</h1>
+            <p class="lead">Object detection across multiple images over time</p>
+            {% if gpu_metrics and gpu_metrics.available %}
+            <div class="gpu-badge">
+                <i class="fas fa-bolt"></i> GPU Accelerated ({{ gpu_metrics.name }})
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header">
+                <i class="fas fa-film"></i> Time-lapse Video
+            </div>
+            <div class="card-body">
+                <div class="summary-card">
+                    <h4><i class="fas fa-info-circle me-2"></i>Video Information</h4>
+                    
+                    <div class="summary-stat">
+                        <div class="summary-label"><i class="fas fa-images me-2"></i>Total Frames</div>
+                        <div class="summary-value"><span class="badge-count">{{ frame_count }}</span></div>
+                    </div>
+                    
+                    <div class="summary-stat">
+                        <div class="summary-label"><i class="fas fa-tachometer-alt me-2"></i>Frames Per Second</div>
+                        <div class="summary-value">{{ fps }} FPS</div>
+                    </div>
+                    
+                    <div class="summary-stat">
+                        <div class="summary-label"><i class="fas fa-clock me-2"></i>Video Duration</div>
+                        <div class="summary-value">{{ duration|round(1) }} seconds</div>
+                    </div>
+                    
+                    <div class="summary-stat">
+                        <div class="summary-label"><i class="fas fa-sliders-h me-2"></i>Detection Threshold</div>
+                        <div class="summary-value">{{ threshold }}</div>
+                    </div>
+                    
+                    {% if selected_classes and selected_classes|length > 0 %}
+                    <div class="summary-stat">
+                        <div class="summary-label"><i class="fas fa-filter me-2"></i>Selected Classes</div>
+                        <div class="summary-value">{{ selected_classes|join(', ') }}</div>
+                    </div>
+                    {% endif %}
+                    
+                    <div class="summary-stat">
+                        <div class="summary-label"><i class="fas fa-clock me-2"></i>Processing Time</div>
+                        <div class="summary-value">{{ processing_time }} seconds</div>
+                    </div>
+                    
+                    {% if gpu_metrics %}
+                    <div class="summary-stat">
+                        <div class="summary-label"><i class="fas fa-microchip me-2"></i>GPU Device</div>
+                        <div class="summary-value">{{ gpu_metrics.name }}</div>
+                    </div>
+                    
+                    <div class="summary-stat">
+                        <div class="summary-label"><i class="fas fa-tachometer-alt me-2"></i>Average Inference Time</div>
+                        <div class="summary-value">{{ gpu_metrics.avg_inference_time }} ms</div>
+                    </div>
+                    
+                    <div class="summary-stat">
+                        <div class="summary-label"><i class="fas fa-chart-line me-2"></i>Average Processing Speed</div>
+                        <div class="summary-value">{{ gpu_metrics.avg_fps }} FPS</div>
+                    </div>
+                    {% endif %}
+                </div>
+                
+                <div class="result-video-container">
+                    <video controls autoplay loop class="result-video">
+                        <source src="{{ url_for('static', filename='results/' + video_file) }}" type="video/mp4">
+                        <p>Your browser doesn't support HTML5 video. <a href="{{ url_for('static', filename='results/' + video_file) }}" download>Download the video</a> instead.</p>
+                    </video>
+                </div>
+                
+                <div class="actions-container">
+                    <a href="{{ url_for('index') }}" class="btn btn-outline-primary">
+                        <i class="fas fa-home"></i> Back to Home
+                    </a>
+                    
+                    <a href="{{ url_for('static', filename='results/' + video_file) }}" class="btn btn-primary" download>
+                        <i class="fas fa-download"></i> Download Video
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <div class="card-header">
+                <i class="fas fa-chart-line"></i> Object Detection Trends
+            </div>
+            <div class="card-body">
+                <p class="text-center mb-4">This chart shows how the detected objects change throughout the time-lapse sequence.</p>
+                
+                <div class="chart-container">
+                    <canvas id="trendsChart"></canvas>
+                </div>
+                
+                <div class="chart-legend" id="customLegend"></div>
+                
+                {% if inference_times and gpu_metrics %}
+                <hr class="my-4">
+                <h5 class="mb-3">GPU Performance</h5>
+                <p class="text-center mb-4">This chart shows the inference time for each frame during processing.</p>
+                
+                <div class="chart-container">
+                    <canvas id="performanceChart"></canvas>
+                </div>
+                {% endif %}
+                
+                <hr class="my-4">
+                
+                <h5 class="mb-3">Individual Frames</h5>
+                <div class="thumbnail-gallery">
+                    {% for i in range(frame_count) %}
+                    <div class="thumbnail" data-frame="{{ i }}">
+                        <img src="{{ url_for('static', filename='results/' + batch_id + '/' + processed_files[i]) }}" alt="Frame {{ i }}">
+                        <div class="frame-number">Frame {{ i+1 }}</div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Adding data elements to store Jinja variables -->
+    <div id="chart-data" 
+        data-frame-count="{{ frame_count }}" 
+        data-trends="{{ trends|tojson }}" 
+        data-total-trend="{{ total_trend|tojson }}"
+        {% if inference_times %}data-inference-times="{{ inference_times|tojson }}"{% endif %}
+        style="display: none;">
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Get data from hidden element
+            const chartData = document.getElementById('chart-data');
+            const frameCount = parseInt(chartData.dataset.frameCount);
+            const trendsData = JSON.parse(chartData.dataset.trends);
+            const totalTrend = JSON.parse(chartData.dataset.totalTrend);
+            
+            // Generate 10 visually distinct colors
+            const colorPalette = [
+                'rgba(255, 99, 132, 1)',    // Red
+                'rgba(54, 162, 235, 1)',    // Blue
+                'rgba(255, 206, 86, 1)',    // Yellow
+                'rgba(75, 192, 192, 1)',    // Green
+                'rgba(153, 102, 255, 1)',   // Purple
+                'rgba(255, 159, 64, 1)',    // Orange
+                'rgba(199, 199, 199, 1)',   // Gray
+                'rgba(83, 102, 255, 1)',    // Indigo
+                'rgba(255, 99, 255, 1)',    // Pink
+                'rgba(0, 214, 143, 1)',     // Teal
+                'rgba(255, 128, 0, 1)',     // Dark Orange
+                'rgba(0, 128, 128, 1)',     // Dark Teal
+                'rgba(128, 0, 128, 1)',     // Dark Purple
+                'rgba(0, 128, 0, 1)',       // Dark Green
+                'rgba(128, 128, 0, 1)'      // Olive
+            ];
+            
+            // Define chart datasets from trends
+            const labels = Array.from({length: frameCount}, (_, i) => `Frame ${i+1}`);
+            const datasets = [];
+            
+            let colorIndex = 0;
+            
+            // Create datasets from trends data
+            for (const className in trendsData) {
+                const color = colorPalette[colorIndex % colorPalette.length];
+                colorIndex++;
+                
+                datasets.push({
+                    label: className,
+                    data: trendsData[className],
+                    borderColor: color,
+                    backgroundColor: color.replace('1)', '0.2)'),
+                    tension: 0.3,
+                    pointRadius: 4,
+                    pointHoverRadius: 6,
+                    fill: false
+                });
+            }
+            
+            // Add total trend line if multiple classes
+            if (datasets.length > 1) {
+                datasets.push({
+                    label: 'Total Objects',
+                    data: totalTrend,
+                    borderColor: 'rgba(0, 0, 0, 0.7)',
+                    backgroundColor: 'rgba(0, 0, 0, 0.05)',
+                    borderWidth: 2,
+                    borderDash: [5, 5],
+                    tension: 0.3,
+                    pointRadius: 4,
+                    pointHoverRadius: 6,
+                    fill: false
+                });
+            }
+            
+            // Create the chart
+            const ctx = document.getElementById('trendsChart').getContext('2d');
+            const trendsChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: datasets
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Number of Objects',
+                                font: {
+                                    weight: 'bold'
+                                }
+                            },
+                            ticks: {
+                                precision: 0,
+                                stepSize: 1
+                            }
+                        },
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Frame Number',
+                                font: {
+                                    weight: 'bold'
+                                }
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            mode: 'index',
+                            intersect: false,
+                            callbacks: {
+                                title: function(context) {
+                                    const frameIndex = context[0].dataIndex;
+                                    return `Frame ${frameIndex + 1}`;
+                                }
+                            }
+                        }
+                    },
+                    interaction: {
+                        mode: 'nearest',
+                        axis: 'x',
+                        intersect: false
+                    }
+                }
+            });
+            
+            // Create custom legend
+            const legendContainer = document.getElementById('customLegend');
+            
+            datasets.forEach(dataset => {
+                const legendItem = document.createElement('div');
+                legendItem.classList.add('legend-item');
+                
+                const colorBox = document.createElement('div');
+                colorBox.classList.add('legend-color');
+                colorBox.style.backgroundColor = dataset.borderColor;
+                
+                const label = document.createElement('span');
+                label.textContent = dataset.label;
+                
+                legendItem.appendChild(colorBox);
+                legendItem.appendChild(label);
+                legendContainer.appendChild(legendItem);
+                
+                // Add click event to toggle visibility
+                legendItem.addEventListener('click', () => {
+                    const index = datasets.findIndex(d => d.label === dataset.label);
+                    const isCurrentlyVisible = trendsChart.isDatasetVisible(index);
+                    
+                    if (isCurrentlyVisible) {
+                        trendsChart.hide(index);
+                        legendItem.style.opacity = 0.5;
+                    } else {
+                        trendsChart.show(index);
+                        legendItem.style.opacity = 1;
+                    }
+                });
+            });
+            
+            // Create the performance chart if inference times data is available
+            if (chartData.dataset.inferenceTimes && document.getElementById('performanceChart')) {
+                const inferenceTimesData = JSON.parse(chartData.dataset.inferenceTimes);
+                const perfCtx = document.getElementById('performanceChart').getContext('2d');
+                const perfLabels = Array.from({length: frameCount}, (_, i) => `Frame ${i+1}`);
+                
+                const performanceChart = new Chart(perfCtx, {
+                    type: 'line',
+                    data: {
+                        labels: perfLabels,
+                        datasets: [{
+                            label: 'Inference Time (ms)',
+                            data: inferenceTimesData,
+                            borderColor: 'rgba(255, 99, 132, 1)',
+                            backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                            tension: 0.3,
+                            pointRadius: 4,
+                            pointHoverRadius: 6,
+                            fill: true
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                title: {
+                                    display: true,
+                                    text: 'Inference Time (ms)',
+                                    font: {
+                                        weight: 'bold'
+                                    }
+                                }
+                            },
+                            x: {
+                                title: {
+                                    display: true,
+                                    text: 'Frame Number',
+                                    font: {
+                                        weight: 'bold'
+                                    }
+                                }
+                            }
+                        },
+                        plugins: {
+                            tooltip: {
+                                mode: 'index',
+                                intersect: false,
+                                callbacks: {
+                                    title: function(context) {
+                                        const frameIndex = context[0].dataIndex;
+                                        return `Frame ${frameIndex + 1}`;
+                                    },
+                                    label: function(context) {
+                                        return `Inference Time: ${context.raw.toFixed(2)} ms`;
+                                    }
+                                }
+                            }
+                        },
+                        interaction: {
+                            mode: 'nearest',
+                            axis: 'x',
+                            intersect: false
+                        }
+                    }
+                });
+            }
+            
+            // Thumbnail click to view larger image
+            const thumbnails = document.querySelectorAll('.thumbnail');
+            thumbnails.forEach(thumb => {
+                thumb.addEventListener('click', function() {
+                    const frameIndex = parseInt(this.getAttribute('data-frame'));
+                    const img = this.querySelector('img');
+                    
+                    // Create a modal to show the full-size image
+                    const modal = document.createElement('div');
+                    modal.style.position = 'fixed';
+                    modal.style.top = '0';
+                    modal.style.left = '0';
+                    modal.style.width = '100%';
+                    modal.style.height = '100%';
+                    modal.style.backgroundColor = 'rgba(0,0,0,0.8)';
+                    modal.style.display = 'flex';
+                    modal.style.justifyContent = 'center';
+                    modal.style.alignItems = 'center';
+                    modal.style.zIndex = '9999';
+                    modal.style.padding = '20px';
+                    modal.style.cursor = 'pointer';
+                    
+                    const modalImg = document.createElement('img');
+                    modalImg.src = img.src;
+                    modalImg.style.maxWidth = '90%';
+                    modalImg.style.maxHeight = '90%';
+                    modalImg.style.borderRadius = '8px';
+                    modalImg.style.boxShadow = '0 5px 30px rgba(0,0,0,0.3)';
+                    
+                    const caption = document.createElement('div');
+                    caption.textContent = `Frame ${frameIndex + 1}`;
+                    caption.style.position = 'absolute';
+                    caption.style.bottom = '10%';
+                    caption.style.color = 'white';
+                    caption.style.textAlign = 'center';
+                    caption.style.width = '100%';
+                    caption.style.fontWeight = 'bold';
+                    caption.style.textShadow = '0 0 5px black';
+                    
+                    modal.appendChild(modalImg);
+                    modal.appendChild(caption);
+                    document.body.appendChild(modal);
+                    
+                    modal.addEventListener('click', function() {
+                        modal.remove();
+                    });
+                });
+            });
+        });
+    </script>
+</body>
+</html> 
