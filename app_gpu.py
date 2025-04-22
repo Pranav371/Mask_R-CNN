@@ -16,6 +16,8 @@ import json
 import io
 import datetime
 import uuid
+from PIL import Image
+import scene_understanding
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
@@ -901,31 +903,32 @@ def handle_process_frame(data):
 # GPU status endpoint
 @app.route('/gpu_status')
 def gpu_status():
-    """Return GPU status information as JSON"""
+    """Return the current GPU status."""
+    status = {
+        'available': torch.cuda.is_available(),
+        'device': str(device),
+        'name': torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'N/A'
+    }
+    
     if torch.cuda.is_available():
-        # Get GPU memory information
-        total_memory = torch.cuda.get_device_properties(0).total_memory
-        reserved_memory = torch.cuda.memory_reserved(0)
-        allocated_memory = torch.cuda.memory_allocated(0)
-        free_memory = total_memory - allocated_memory
-        
-        # Return JSON response
-        return jsonify({
-            'available': True,
-            'device_name': torch.cuda.get_device_name(0),
-            'device': str(device),
-            'cuda_version': torch.version.cuda,
-            'total_memory_gb': round(total_memory / (1024**3), 2),
-            'free_memory_gb': round(free_memory / (1024**3), 2),
-            'reserved_memory_gb': round(reserved_memory / (1024**3), 2),
-            'allocated_memory_gb': round(allocated_memory / (1024**3), 2),
-            'memory_usage_percent': round((allocated_memory / total_memory) * 100, 2)
-        })
-    else:
-        return jsonify({
-            'available': False,
-            'device': 'cpu'
-        })
+        try:
+            # Get memory stats
+            memory_allocated = torch.cuda.memory_allocated(0) / (1024**3)  # Convert to GB
+            memory_reserved = torch.cuda.memory_reserved(0) / (1024**3)    # Convert to GB
+            total_memory = torch.cuda.get_device_properties(0).total_memory / (1024**3)
+            
+            # Update status dict with memory info
+            status.update({
+                'memory_allocated_gb': round(memory_allocated, 2),
+                'memory_reserved_gb': round(memory_reserved, 2),
+                'total_memory_gb': round(total_memory, 2),
+                'memory_allocated_percent': round((memory_allocated / total_memory) * 100, 1),
+                'memory_reserved_percent': round((memory_reserved / total_memory) * 100, 1)
+            })
+        except Exception as e:
+            status['error'] = str(e)
+    
+    return jsonify(status)
 
 def create_annotations(image_path, threshold=0.7, selected_classes=None):
     """Create annotations in COCO format from image detections using GPU acceleration."""
@@ -1290,6 +1293,126 @@ def save_annotations():
         json.dump(annotations, f, indent=2)
     
     return jsonify({'success': True, 'file': os.path.basename(output_file)})
+
+@app.route('/scene_analysis/<filename>')
+def scene_analysis(filename):
+    """
+    Analyze relationships and generate descriptions for an image using GPU acceleration.
+    """
+    # Check if the file exists
+    file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+    if not os.path.exists(file_path):
+        flash('File not found')
+        return redirect(url_for('index'))
+    
+    # Check if it's an image
+    if not filename.lower().endswith(('.png', '.jpg', '.jpeg')):
+        flash('Scene analysis is only supported for images')
+        return redirect(url_for('index'))
+    
+    # Generate COCO annotations for the image if they don't exist
+    threshold = float(request.args.get('threshold', 0.7))
+    
+    # Check if annotations already exist in the cache
+    annotations_dir = os.path.join(static_dir, 'annotations')
+    os.makedirs(annotations_dir, exist_ok=True)
+    annotation_file = os.path.join(annotations_dir, f"{os.path.splitext(filename)[0]}_coco.json")
+    
+    if os.path.exists(annotation_file):
+        with open(annotation_file, 'r') as f:
+            coco_data = json.load(f)
+    else:
+        coco_data = create_annotations(file_path, threshold)
+        # Save annotations for future use
+        with open(annotation_file, 'w') as f:
+            json.dump(coco_data, f, indent=2)
+    
+    # Analyze the scene using GPU if available
+    scene_device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    start_time = time.time()
+    scene_results = scene_understanding.analyze_scene(file_path, coco_data, scene_device)
+    processing_time = time.time() - start_time
+    
+    # Get a simplified version for the UI
+    simplified_results = scene_understanding.get_simplified_scene_analysis(scene_results)
+    
+    # Add processing time and GPU info
+    simplified_results['processing_time'] = round(processing_time, 2)
+    
+    # Add GPU information
+    gpu_info = {
+        'available': torch.cuda.is_available(),
+        'device': str(device),
+        'name': torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'N/A'
+    }
+    
+    if torch.cuda.is_available():
+        memory_allocated = torch.cuda.memory_allocated(0) / (1024**3)  # Convert to GB
+        memory_reserved = torch.cuda.memory_reserved(0) / (1024**3)    # Convert to GB
+        total_memory = torch.cuda.get_device_properties(0).total_memory / (1024**3)
+        
+        gpu_info.update({
+            'memory_allocated_gb': round(memory_allocated, 2),
+            'memory_reserved_gb': round(memory_reserved, 2),
+            'total_memory_gb': round(total_memory, 2),
+            'memory_allocated_percent': round((memory_allocated / total_memory) * 100, 1),
+            'memory_reserved_percent': round((memory_reserved / total_memory) * 100, 1)
+        })
+    
+    # Render the template with results
+    return render_template(
+        'scene_analysis.html',
+        filename=filename,
+        results=simplified_results,
+        full_results=json.dumps(scene_results),
+        gpu_info=gpu_info
+    )
+
+@app.route('/answer_question/<filename>', methods=['POST'])
+def answer_question(filename):
+    """
+    Answer a question about an image using VQA with GPU acceleration.
+    """
+    # Check if the file exists
+    file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+    if not os.path.exists(file_path):
+        return jsonify({'error': 'File not found'})
+    
+    # Get the question from the request
+    data = request.json
+    if not data or 'question' not in data:
+        return jsonify({'error': 'No question provided'})
+    
+    question = data['question']
+    
+    try:
+        # Load the image
+        image = Image.open(file_path)
+        
+        # Get the answer using GPU if available
+        vqa_device = 'cuda' if torch.cuda.is_available() else 'cpu'
+        start_time = time.time()
+        answer = scene_understanding.answer_question(image, question, vqa_device)
+        processing_time = time.time() - start_time
+        
+        response = {
+            'success': True,
+            'question': question,
+            'answer': answer,
+            'processing_time': round(processing_time, 2),
+            'device': str(vqa_device)
+        }
+        
+        # Add GPU info if available
+        if torch.cuda.is_available():
+            response['gpu_name'] = torch.cuda.get_device_name(0)
+        
+        return jsonify(response)
+    except Exception as e:
+        logger.error(f"Error in VQA: {e}")
+        return jsonify({
+            'error': str(e)
+        })
 
 if __name__ == '__main__':
     logger.info(f"Starting server with device: {device}")

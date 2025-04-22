@@ -14,6 +14,8 @@ This is a Flask web application that provides a user-friendly interface for perf
 - **NEW: Annotation Editor for creating and editing object annotations**
 - **NEW: Export annotations in multiple formats (COCO JSON, Pascal VOC, YOLO)**
 - **NEW: Real-time annotation editing with visual tools**
+- **NEW: Scene Understanding and Relationship Analysis**
+- **NEW: Visual Question Answering (VQA) for images**
 
 ## Annotation Editor
 
@@ -53,6 +55,41 @@ This feature is particularly useful for:
 - Correcting model predictions
 - Exporting annotations for use in other machine learning projects
 - Fine-tuning detection results before further processing
+
+## Scene Understanding
+
+The new Scene Understanding feature enhances image analysis by going beyond simple object detection:
+
+1. **Relationship Detection:**
+   - Automatically identifies spatial relationships between objects (above, below, inside, next to)
+   - Recognizes common interaction patterns (e.g., person sitting on chair, book placed on table)
+   - Visualizes connections between objects in the scene
+
+2. **Natural Language Scene Descriptions:**
+   - Generates detailed textual descriptions of the entire scene
+   - Highlights key objects and their relationships
+   - Provides comprehensive captions about the scene content
+
+3. **Visual Question Answering:**
+   - Ask any question about the image content
+   - Get AI-powered answers about objects, activities, and relationships
+   - Includes common pre-set questions and the ability to ask custom questions
+
+4. **GPU-Accelerated Analysis:**
+   - Utilizes GPU (when available) for faster processing
+   - Shows detailed performance metrics
+   - Optimized for both CPU and GPU environments
+
+To use the Scene Understanding feature:
+1. Process an image with Mask R-CNN detection
+2. On the results page, click the "Scene Understanding" button
+3. Explore the detected relationships, descriptions, and ask questions about the image
+
+This feature is particularly valuable for:
+- Content analysis and understanding
+- Accessibility applications (image descriptions for visually impaired)
+- Research and data analysis of image content
+- Automated image captioning and tagging
 
 ## Requirements
 
@@ -194,12 +231,18 @@ pip3 install torch torchvision torchaudio
    - See a summary of detected objects (for images)
    - Download the processed image (for images)
    - Access the Annotation Editor to modify or export annotations
+   - Use Scene Understanding to analyze relationships between objects
    - Process another file
 5. Annotation Editor functionality:
    - When viewing an image result, click the "Edit Annotations" button
    - Use the provided tools to modify existing annotations or add new ones
    - Export annotations in your preferred format (COCO JSON, Pascal VOC, or YOLO)
    - Download the exported annotations for use in other ML projects
+6. Scene Understanding functionality:
+   - When viewing an image result, click the "Scene Understanding" button
+   - Review automatically generated scene descriptions and relationships
+   - Explore spatial relationships and interactions between objects
+   - Ask questions about the image content using the Visual QA feature
 
 ## Model Information
 

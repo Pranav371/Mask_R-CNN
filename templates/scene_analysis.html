@@ -1,0 +1,618 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scene Understanding - Mask R-CNN</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #4361ee;
+            --primary-hover: #3a56d4;
+            --secondary-color: #3f37c9;
+            --accent-color: #4895ef;
+            --success-color: #2ecc71;
+            --warning-color: #f39c12;
+            --danger-color: #e74c3c;
+            --light-accent: rgba(67, 97, 238, 0.1);
+            --text-color: #333;
+            --text-secondary: #6c757d;
+            --bg-color: #f8f9fa;
+            --card-bg: #ffffff;
+            --border-radius: 16px;
+            --box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
+            --transition: all 0.3s ease;
+        }
+        
+        body {
+            padding-top: 2rem;
+            padding-bottom: 3rem;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 1000px;
+        }
+        
+        .card {
+            border: none;
+            border-radius: var(--border-radius);
+            box-shadow: var(--box-shadow);
+            margin-bottom: 2rem;
+            overflow: hidden;
+            transition: var(--transition);
+        }
+        
+        .card:hover {
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+            transform: translateY(-5px);
+        }
+        
+        .card-header {
+            background: linear-gradient(90deg, var(--primary-color), var(--accent-color));
+            color: white;
+            font-weight: 600;
+            padding: 1.25rem 1.5rem;
+            border-bottom: none;
+            font-size: 1.2rem;
+        }
+        
+        .card-header i {
+            margin-right: 8px;
+        }
+        
+        .card-body {
+            padding: 2rem;
+        }
+        
+        .btn {
+            border-radius: 30px;
+            padding: 0.8rem 1.5rem;
+            font-weight: 600;
+            transition: var(--transition);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+        }
+        
+        .btn-primary {
+            background: linear-gradient(90deg, var(--primary-color), var(--accent-color));
+            border: none;
+            box-shadow: 0 5px 15px rgba(67, 97, 238, 0.3);
+        }
+        
+        .btn-primary:hover {
+            background: linear-gradient(90deg, var(--accent-color), var(--primary-color));
+            transform: translateY(-3px);
+            box-shadow: 0 10px 25px rgba(67, 97, 238, 0.4);
+        }
+        
+        .btn-outline-primary {
+            color: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+        
+        .btn-outline-primary:hover {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(67, 97, 238, 0.2);
+        }
+        
+        .btn i {
+            margin-right: 8px;
+        }
+        
+        .scene-image-container {
+            position: relative;
+            border-radius: var(--border-radius);
+            overflow: hidden;
+            box-shadow: var(--box-shadow);
+            margin-bottom: 2rem;
+            background-color: #000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .scene-image {
+            max-width: 100%;
+            display: block;
+            margin: 0 auto;
+        }
+        
+        .section-title {
+            font-weight: 700;
+            color: var(--primary-color);
+            margin-bottom: 1.5rem;
+            position: relative;
+            display: inline-block;
+        }
+        
+        .section-title:after {
+            content: '';
+            position: absolute;
+            bottom: -8px;
+            left: 0;
+            width: 50px;
+            height: 3px;
+            background: linear-gradient(90deg, var(--primary-color), var(--accent-color));
+            border-radius: 2px;
+        }
+        
+        .scene-description {
+            background-color: var(--light-accent);
+            border-radius: var(--border-radius);
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            font-size: 1.1rem;
+            color: var(--text-color);
+            border-left: 4px solid var(--primary-color);
+        }
+        
+        .detailed-caption {
+            background-color: rgba(72, 149, 239, 0.1);
+            border-radius: var(--border-radius);
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            font-size: 1.1rem;
+            color: var(--text-color);
+            border-left: 4px solid var(--accent-color);
+            font-style: italic;
+        }
+        
+        .relationship-item, .interaction-item {
+            background-color: white;
+            border-radius: var(--border-radius);
+            padding: 1rem 1.5rem;
+            margin-bottom: 1rem;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.03);
+            border-left: 3px solid var(--primary-color);
+            font-weight: 500;
+        }
+        
+        .interaction-item {
+            border-left-color: var(--success-color);
+        }
+        
+        .stats-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+        
+        .stat-card {
+            flex: 1;
+            min-width: 200px;
+            background-color: white;
+            border-radius: var(--border-radius);
+            padding: 1.5rem;
+            text-align: center;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.03);
+            border-top: 3px solid var(--primary-color);
+        }
+        
+        .stat-value {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--primary-color);
+            margin-bottom: 0.5rem;
+        }
+        
+        .stat-label {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .vqa-container {
+            background-color: white;
+            border-radius: var(--border-radius);
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: var(--box-shadow);
+        }
+        
+        .vqa-title {
+            margin-bottom: 1.5rem;
+            font-weight: 600;
+            color: var(--primary-color);
+            display: flex;
+            align-items: center;
+        }
+        
+        .vqa-title i {
+            margin-right: 0.75rem;
+        }
+        
+        .vqa-input-container {
+            display: flex;
+            margin-bottom: 1.5rem;
+        }
+        
+        .vqa-input {
+            flex: 1;
+            border-radius: 50px 0 0 50px;
+            border: 1px solid rgba(0, 0, 0, 0.1);
+            padding: 0.8rem 1.5rem;
+            font-size: 1rem;
+            outline: none;
+            transition: var(--transition);
+        }
+        
+        .vqa-input:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 0.2rem rgba(67, 97, 238, 0.25);
+        }
+        
+        .vqa-btn {
+            border-radius: 0 50px 50px 0;
+            background: linear-gradient(90deg, var(--primary-color), var(--accent-color));
+            color: white;
+            border: none;
+            padding: 0.8rem 1.5rem;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        
+        .vqa-examples {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+            margin-top: 1.5rem;
+        }
+        
+        .vqa-example-btn {
+            background-color: var(--light-accent);
+            color: var(--primary-color);
+            border: none;
+            border-radius: 30px;
+            padding: 0.5rem 1rem;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+        
+        .vqa-example-btn:hover {
+            background-color: var(--primary-color);
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(67, 97, 238, 0.2);
+        }
+        
+        .vqa-qa-container {
+            margin-top: 2rem;
+        }
+        
+        .vqa-qa-item {
+            background-color: #f8f9fa;
+            border-radius: var(--border-radius);
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+            border-left: 3px solid var(--primary-color);
+        }
+        
+        .vqa-question {
+            font-weight: 600;
+            color: var(--primary-color);
+            margin-bottom: 0.75rem;
+        }
+        
+        .vqa-answer {
+            color: var(--text-color);
+        }
+        
+        .gpu-info {
+            background-color: rgba(0, 0, 0, 0.05);
+            border-radius: var(--border-radius);
+            padding: 1rem 1.5rem;
+            margin-top: 1rem;
+            font-size: 0.9rem;
+        }
+        
+        .gpu-info-title {
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: var(--text-color);
+            display: flex;
+            align-items: center;
+        }
+        
+        .gpu-info-title i {
+            margin-right: 0.5rem;
+            color: var(--primary-color);
+        }
+        
+        .gpu-info-content {
+            color: var(--text-secondary);
+        }
+        
+        .gpu-info-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.25rem;
+        }
+        
+        .processing-time {
+            color: var(--success-color);
+            font-weight: 600;
+        }
+        
+        .actions-container {
+            display: flex;
+            gap: 1rem;
+            margin-top: 2rem;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        
+        @media (max-width: 768px) {
+            .card-body {
+                padding: 1.5rem;
+            }
+            
+            .vqa-input-container {
+                flex-direction: column;
+            }
+            
+            .vqa-input, .vqa-btn {
+                border-radius: 50px;
+                width: 100%;
+            }
+            
+            .vqa-btn {
+                margin-top: 0.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="mb-4 text-center">
+            <h1 class="mb-2">Scene Understanding</h1>
+            <p class="text-muted">Advanced analysis and relationship detection between objects</p>
+        </div>
+        
+        <div class="scene-image-container">
+            <img src="{{ url_for('static', filename='uploads/' + filename) }}" alt="Scene Image" class="scene-image">
+        </div>
+        
+        <div class="card">
+            <div class="card-header">
+                <i class="fas fa-brain"></i> Scene Analysis
+            </div>
+            <div class="card-body">
+                <h3 class="section-title">Scene Description</h3>
+                <div class="scene-description">
+                    {{ results.scene_description }}
+                </div>
+                
+                <h3 class="section-title">Detailed Caption</h3>
+                <div class="detailed-caption">
+                    {{ results.detailed_caption }}
+                </div>
+                
+                <div class="stats-container">
+                    <div class="stat-card">
+                        <div class="stat-value">{{ results.object_count }}</div>
+                        <div class="stat-label">Objects Detected</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">{{ results.relationship_count }}</div>
+                        <div class="stat-label">Relationships</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">{{ results.interaction_count }}</div>
+                        <div class="stat-label">Interactions</div>
+                    </div>
+                    {% if results.processing_time is defined %}
+                    <div class="stat-card">
+                        <div class="stat-value">{{ results.processing_time }}s</div>
+                        <div class="stat-label">Processing Time</div>
+                    </div>
+                    {% endif %}
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-6">
+                        <h3 class="section-title">Key Relationships</h3>
+                        {% if results.key_relationships %}
+                            {% for relationship in results.key_relationships %}
+                                <div class="relationship-item">
+                                    <i class="fas fa-arrows-alt me-2"></i> {{ relationship }}
+                                </div>
+                            {% endfor %}
+                        {% else %}
+                            <p class="text-muted">No significant relationships detected.</p>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <h3 class="section-title">Potential Interactions</h3>
+                        {% if results.key_interactions %}
+                            {% for interaction in results.key_interactions %}
+                                <div class="interaction-item">
+                                    <i class="fas fa-exchange-alt me-2"></i> {{ interaction }}
+                                </div>
+                            {% endfor %}
+                        {% else %}
+                            <p class="text-muted">No significant interactions detected.</p>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <h3 class="section-title mt-4">Visual Question Answering</h3>
+                <div class="vqa-container">
+                    <div class="vqa-title">
+                        <i class="fas fa-question-circle"></i> Ask a question about this image
+                    </div>
+                    
+                    <div class="vqa-input-container">
+                        <input type="text" class="vqa-input" id="question-input" placeholder="Ask a question (e.g., What objects are in this image?)">
+                        <button class="vqa-btn" id="ask-btn">
+                            <i class="fas fa-search"></i> Ask
+                        </button>
+                    </div>
+                    
+                    <div class="vqa-examples">
+                        <div class="text-muted me-2">Try these examples:</div>
+                        {% for question in results.vqa_examples %}
+                            <button class="vqa-example-btn">{{ question }}</button>
+                        {% endfor %}
+                    </div>
+                    
+                    <div class="vqa-qa-container" id="qa-container">
+                        {% for question, answer in results.vqa_examples.items() %}
+                            <div class="vqa-qa-item">
+                                <div class="vqa-question">
+                                    <i class="fas fa-question-circle me-2"></i> {{ question }}
+                                </div>
+                                <div class="vqa-answer">
+                                    <i class="fas fa-comment-dots me-2"></i> {{ answer }}
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                
+                {% if gpu_info and gpu_info.available %}
+                <div class="gpu-info">
+                    <div class="gpu-info-title">
+                        <i class="fas fa-microchip"></i> GPU Information
+                    </div>
+                    <div class="gpu-info-content">
+                        <div class="gpu-info-item">
+                            <span>GPU Device:</span>
+                            <span>{{ gpu_info.name }}</span>
+                        </div>
+                        {% if gpu_info.memory_allocated_gb is defined %}
+                        <div class="gpu-info-item">
+                            <span>Memory Usage:</span>
+                            <span>{{ gpu_info.memory_allocated_gb }} GB / {{ gpu_info.total_memory_gb }} GB ({{ gpu_info.memory_allocated_percent }}%)</span>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <div class="actions-container">
+            <a href="{{ url_for('result_file', filename=filename) }}" class="btn btn-outline-primary">
+                <i class="fas fa-arrow-left"></i> Back to Results
+            </a>
+            <a href="{{ url_for('index') }}" class="btn btn-outline-primary">
+                <i class="fas fa-home"></i> Back to Home
+            </a>
+            <a href="{{ url_for('annotation_editor', filename=filename) }}" class="btn btn-primary">
+                <i class="fas fa-edit"></i> Edit Annotations
+            </a>
+        </div>
+    </div>
+    
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const questionInput = document.getElementById('question-input');
+            const askBtn = document.getElementById('ask-btn');
+            const qaContainer = document.getElementById('qa-container');
+            const exampleBtns = document.querySelectorAll('.vqa-example-btn');
+            
+            // Add event listener for the Ask button
+            askBtn.addEventListener('click', function() {
+                askQuestion();
+            });
+            
+            // Add event listener for Enter key on question input
+            questionInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    askQuestion();
+                }
+            });
+            
+            // Add event listeners for example question buttons
+            exampleBtns.forEach(btn => {
+                btn.addEventListener('click', function() {
+                    questionInput.value = this.textContent;
+                    askQuestion();
+                });
+            });
+            
+            function askQuestion() {
+                const question = questionInput.value.trim();
+                if (!question) return;
+                
+                // Show loading state
+                askBtn.disabled = true;
+                askBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+                
+                // Send the question to the server
+                fetch('/answer_question/{{ filename }}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ question: question })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    // Create new QA element
+                    const qaItem = document.createElement('div');
+                    qaItem.className = 'vqa-qa-item';
+                    
+                    // Add processing time info if available
+                    let processingInfo = '';
+                    if (data.processing_time) {
+                        processingInfo = ` <span class="processing-time">(${data.processing_time}s)</span>`;
+                    }
+                    
+                    // Create question and answer elements
+                    if (data.success) {
+                        qaItem.innerHTML = `
+                            <div class="vqa-question">
+                                <i class="fas fa-question-circle me-2"></i> ${question}${processingInfo}
+                            </div>
+                            <div class="vqa-answer">
+                                <i class="fas fa-comment-dots me-2"></i> ${data.answer}
+                            </div>
+                        `;
+                    } else {
+                        qaItem.innerHTML = `
+                            <div class="vqa-question">
+                                <i class="fas fa-question-circle me-2"></i> ${question}
+                            </div>
+                            <div class="vqa-answer text-danger">
+                                <i class="fas fa-exclamation-circle me-2"></i> Error: ${data.error}
+                            </div>
+                        `;
+                    }
+                    
+                    // Add to QA container at the top
+                    qaContainer.insertBefore(qaItem, qaContainer.firstChild);
+                    
+                    // Clear input
+                    questionInput.value = '';
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('An error occurred while processing your question. Please try again.');
+                })
+                .finally(() => {
+                    // Reset button state
+                    askBtn.disabled = false;
+                    askBtn.innerHTML = '<i class="fas fa-search"></i> Ask';
+                });
+            }
+        });
+    </script>
+</body>
+</html> 

@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 import os
 import time
 import cv2
@@ -16,6 +17,8 @@ import json
 import io
 import datetime
 import uuid
+from PIL import Image
+import scene_understanding
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
@@ -1141,6 +1144,91 @@ def save_annotations():
         json.dump(annotations, f, indent=2)
     
     return jsonify({'success': True, 'file': os.path.basename(output_file)})
+
+@app.route('/scene_analysis/<filename>')
+def scene_analysis(filename):
+    """
+    Analyze relationships and generate descriptions for an image.
+    """
+    # Check if the file exists
+    file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+    if not os.path.exists(file_path):
+        flash('File not found')
+        return redirect(url_for('index'))
+    
+    # Check if it's an image
+    if not filename.lower().endswith(('.png', '.jpg', '.jpeg')):
+        flash('Scene analysis is only supported for images')
+        return redirect(url_for('index'))
+    
+    # Generate COCO annotations for the image if they don't exist
+    threshold = float(request.args.get('threshold', 0.7))
+    
+    # Check if annotations already exist in the cache
+    annotations_dir = os.path.join(static_dir, 'annotations')
+    os.makedirs(annotations_dir, exist_ok=True)
+    annotation_file = os.path.join(annotations_dir, f"{os.path.splitext(filename)[0]}_coco.json")
+    
+    if os.path.exists(annotation_file):
+        with open(annotation_file, 'r') as f:
+            coco_data = json.load(f)
+    else:
+        coco_data = create_annotations(file_path, threshold)
+        # Save annotations for future use
+        with open(annotation_file, 'w') as f:
+            json.dump(coco_data, f, indent=2)
+    
+    # Analyze the scene - use CPU version or GPU if available
+    device = 'cpu'
+    scene_results = scene_understanding.analyze_scene(file_path, coco_data, device)
+    
+    # Get a simplified version for the UI
+    simplified_results = scene_understanding.get_simplified_scene_analysis(scene_results)
+    
+    # Render the template with results
+    return render_template(
+        'scene_analysis.html',
+        filename=filename,
+        results=simplified_results,
+        full_results=json.dumps(scene_results),
+        gpu_info={'available': False, 'device': 'cpu', 'name': 'CPU'}
+    )
+
+@app.route('/answer_question/<filename>', methods=['POST'])
+def answer_question(filename):
+    """
+    Answer a question about an image using VQA.
+    """
+    # Check if the file exists
+    file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+    if not os.path.exists(file_path):
+        return jsonify({'error': 'File not found'})
+    
+    # Get the question from the request
+    data = request.json
+    if not data or 'question' not in data:
+        return jsonify({'error': 'No question provided'})
+    
+    question = data['question']
+    
+    try:
+        # Load the image
+        image = Image.open(file_path)
+        
+        # Get the answer
+        device = 'cpu'
+        answer = scene_understanding.answer_question(image, question, device)
+        
+        return jsonify({
+            'success': True,
+            'question': question,
+            'answer': answer
+        })
+    except Exception as e:
+        logger.error(f"Error in VQA: {e}")
+        return jsonify({
+            'error': str(e)
+        })
 
 if __name__ == '__main__':
     socketio.run(app, debug=True) 
